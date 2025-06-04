@@ -1,0 +1,187 @@
+# Guvnor Development Rules
+# Because even chaos needs structure
+
+## Project Context
+You are working on Guvnor, an open-source incident management platform built in Go.
+Key principles: reliability, simplicity, self-hostability, OpenTelemetry-native.
+Target users: SREs who trust git commits over marketing promises.
+
+## Go Code Standards
+
+### Package Structure
+- Follow standard Go project layout
+- Keep packages focused and cohesive
+- internal/ for packages that shouldn't be imported by external projects
+- pkg/ for packages that can be safely used by external projects
+- No circular dependencies between packages
+
+### Documentation
+EVERY exported function, type, constant, and variable MUST have a godoc comment:
+```go
+// CreateIncident creates a new incident with the given parameters.
+// It returns the created incident or an error if creation fails.
+//
+// Possible errors:
+//   - ErrInvalidTitle: title is empty or exceeds maximum length
+//   - ErrTeamNotFound: specified team does not exist
+//   - ErrDBConnection: database connection failed
+func CreateIncident(ctx context.Context, params IncidentParams) (*Incident, error) {
+```
+
+### Error Handling
+- Always check errors immediately
+- Wrap errors with context using fmt.Errorf("failed to X: %w", err)
+- Define sentinel errors for common cases
+- Never ignore errors with _ unless explicitly commented why
+```go
+// Bad
+result, _ := someFunction()
+
+// Good
+result, err := someFunction()
+if err != nil {
+    return fmt.Errorf("failed to do something: %w", err)
+}
+```
+
+### Context Usage
+- All functions that might block or make external calls MUST accept context.Context as first parameter
+- Respect context cancellation
+- Use context for request-scoped values sparingly
+
+### Logging
+- Use structured logging (no fmt.Println in production code)
+- Include relevant context in log entries
+- Error logs should include enough information to debug without access to source
+```go
+log.WithFields(log.Fields{
+    "incident_id": incident.ID,
+    "team_id": incident.TeamID,
+    "error": err,
+}).Error("failed to update incident status")
+```
+
+### Testing
+- Table-driven tests for multiple scenarios
+- Test file names must end with _test.go
+- Use testify/assert for clear test assertions
+- Mock external dependencies (database, APIs, etc.)
+- Minimum 70% code coverage for new code
+```go
+func TestCreateIncident(t *testing.T) {
+    tests := []struct {
+        name    string
+        params  IncidentParams
+        want    *Incident
+        wantErr error
+    }{
+        {
+            name: "valid incident",
+            params: IncidentParams{Title: "Database is on fire"},
+            want: &Incident{Title: "Database is on fire"},
+        },
+        {
+            name: "empty title",
+            params: IncidentParams{Title: ""},
+            wantErr: ErrInvalidTitle,
+        },
+    }
+    // ... rest of test
+}
+```
+
+### Concurrency
+- No goroutine without proper lifecycle management
+- Always handle goroutine panics
+- Use sync.WaitGroup or errgroup for coordinating goroutines
+- Channels should have clear ownership (who closes it)
+
+### Database Operations
+- Use prepared statements for all queries
+- Always use transactions for multiple related operations
+- Set appropriate timeouts on database contexts
+- Handle connection failures gracefully
+```go
+ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+defer cancel()
+```
+
+### API Design
+- RESTful endpoints should follow standard conventions
+- Use proper HTTP status codes
+- All responses must be JSON (unless explicitly downloading files)
+- Include request IDs in responses for tracing
+- Rate limit all public endpoints
+
+### Security
+- Never log sensitive information (passwords, tokens, PII)
+- Validate all inputs, especially from external sources
+- Use crypto/rand for any random generation
+- Store secrets in environment variables, never in code
+- SQL injection protection via parameterized queries
+
+### Performance
+- Profile before optimizing
+- Avoid premature optimization
+- But DO optimize obvious issues:
+  - N+1 queries
+  - Unbounded loops
+  - Memory leaks from unclosed resources
+- Use sync.Pool for frequently allocated objects
+
+### Code Style
+- Follow gofmt and golint recommendations
+- Max line length: 120 characters (be reasonable)
+- Group imports: stdlib, external, internal
+- No unused imports or variables
+- Meaningful variable names (no single letters except loop indices)
+
+### Git Commits
+Format: `<type>(<scope>): <subject>`
+
+Types:
+- feat: new feature
+- fix: bug fix
+- docs: documentation only
+- style: formatting, missing semicolons, etc
+- refactor: code change that neither fixes a bug nor adds a feature
+- test: adding missing tests
+- chore: changes to build process or auxiliary tools
+
+Example: `feat(incidents): add OpenTelemetry trace correlation`
+
+### OpenTelemetry Specific
+- Instrument all HTTP handlers and clients
+- Create spans for significant operations
+- Include relevant attributes in spans
+- Respect trace context propagation
+- Sample appropriately to avoid overwhelming storage
+
+### Incident Management Specific
+- Never lose an alert (at-least-once delivery)
+- Audit log all state changes
+- Make on-call schedules immutable once active
+- Time zones are hard - always store UTC, display local
+- Escalation paths must be tested before activation
+
+### Development Workflow
+- No direct commits to main branch
+- All changes via pull requests
+- Run `make test` before pushing
+- Run `make lint` and fix all issues
+- Update documentation for any API changes
+- Add integration tests for new features
+
+### Debugging
+- When adding debug logging, use appropriate log levels
+- Include correlation IDs in all log entries
+- Make errors actionable - include what went wrong AND how to fix it
+
+## Remember
+You're building software for people who wake up at 3 AM to fix production issues.
+Make their lives easier, not harder. Every decision should be viewed through the lens of:
+"Will this help or hinder someone who's half-awake and stressed?"
+
+## Final Note
+When in doubt, choose boring. Boring technology, boring patterns, boring solutions.
+Boring is reliable. Boring is debuggable. Boring doesn't page you at 3 AM.
