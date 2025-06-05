@@ -18,7 +18,7 @@ func TestHello(t *testing.T) {
 }
 
 // TestMainOutput checks the output of the compiled main program.
-// Since the main program now uses structured logging, we check for expected log entries.
+// Since the main program now uses Cobra CLI, we check for expected CLI output.
 func TestMainOutput(t *testing.T) {
 	// Build the program first to ensure we are testing the current code
 	cmdBuild := exec.Command("go", "build", "-o", "../../guvnor_test_binary") // Output to root to avoid dirtying cmd/guvnor
@@ -29,6 +29,7 @@ func TestMainOutput(t *testing.T) {
 	}
 	defer os.Remove("../../guvnor_test_binary") // Clean up the binary
 
+	// Test help output (default when no args provided)
 	cmdRun := exec.Command("../../guvnor_test_binary")
 	output, err := cmdRun.CombinedOutput()
 	if err != nil {
@@ -37,15 +38,13 @@ func TestMainOutput(t *testing.T) {
 
 	actualOutput := strings.TrimSpace(string(output))
 
-	// Check for expected structured logging output
+	// Check for expected CLI output
 	expectedStrings := []string{
-		"Starting Guvnor incident management platform",
-		"version=0.1.0",
-		"environment=development",
-		"Application initialized successfully",
-		"Operation started",
-		"Operation completed",
-		"Guvnor startup complete",
+		"Guvnor is a reliable, self-hostable incident management platform",
+		"Usage:",
+		"Available Commands:",
+		"version",
+		"Flags:",
 	}
 
 	for _, expected := range expectedStrings {
@@ -53,18 +52,41 @@ func TestMainOutput(t *testing.T) {
 			t.Errorf("Expected output to contain '%s', but it was missing from: %s", expected, actualOutput)
 		}
 	}
+}
 
-	// Verify structured logging format (should contain time, level, source, msg)
-	if !strings.Contains(actualOutput, "time=") {
-		t.Error("Expected structured logging output to contain timestamp")
+// TestVersionOutput tests the version command output.
+func TestVersionOutput(t *testing.T) {
+	// Build the program first
+	cmdBuild := exec.Command("go", "build", "-o", "../../guvnor_test_binary")
+	cmdBuild.Dir = "."
+	err := cmdBuild.Run()
+	if err != nil {
+		t.Fatalf("Failed to build main.go: %v", err)
 	}
-	if !strings.Contains(actualOutput, "level=") {
-		t.Error("Expected structured logging output to contain log level")
+	defer os.Remove("../../guvnor_test_binary")
+
+	// Test version command
+	cmdRun := exec.Command("../../guvnor_test_binary", "version")
+	output, err := cmdRun.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Failed to run version command: %v, output: %s", err, string(output))
 	}
-	if !strings.Contains(actualOutput, "source=") {
-		t.Error("Expected structured logging output to contain source information")
+
+	actualOutput := strings.TrimSpace(string(output))
+
+	// Check for expected version output
+	expectedStrings := []string{
+		"Guvnor Incident Management Platform",
+		"Version:",
+		"Commit:",
+		"Built:",
+		"Go version:",
+		"Go OS/Arch:",
 	}
-	if !strings.Contains(actualOutput, "msg=") {
-		t.Error("Expected structured logging output to contain message field")
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(actualOutput, expected) {
+			t.Errorf("Expected version output to contain '%s', but it was missing from: %s", expected, actualOutput)
+		}
 	}
 }
