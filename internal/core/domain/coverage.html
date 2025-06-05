@@ -1,0 +1,477 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>domain: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/Studio-Elephant-and-Rope/guvnor/internal/core/domain/incident.go (99.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package domain contains the core domain models for the Guvnor incident management platform.
+//
+// This package defines the fundamental types and business logic for incidents,
+// signals, and events without any external dependencies.
+package domain
+
+import (
+        "errors"
+        "fmt"
+        "time"
+)
+
+// Status represents the current state of an incident.
+type Status string
+
+// Status constants define the valid incident statuses and their transitions.
+const (
+        StatusTriggered     Status = "triggered"
+        StatusAcknowledged  Status = "acknowledged"
+        StatusInvestigating Status = "investigating"
+        StatusResolved      Status = "resolved"
+)
+
+// String returns the string representation of the status.
+func (s Status) String() string <span class="cov8" title="1">{
+        return string(s)
+}</span>
+
+// IsValid checks if the status is one of the defined valid statuses.
+func (s Status) IsValid() bool <span class="cov8" title="1">{
+        switch s </span>{
+        case StatusTriggered, StatusAcknowledged, StatusInvestigating, StatusResolved:<span class="cov8" title="1">
+                return true</span>
+        default:<span class="cov8" title="1">
+                return false</span>
+        }
+}
+
+// Severity represents the criticality level of an incident.
+type Severity string
+
+// Severity constants define the valid incident severity levels.
+const (
+        SeverityCritical Severity = "critical"
+        SeverityHigh     Severity = "high"
+        SeverityMedium   Severity = "medium"
+        SeverityLow      Severity = "low"
+        SeverityInfo     Severity = "info"
+)
+
+// String returns the string representation of the severity.
+func (s Severity) String() string <span class="cov8" title="1">{
+        return string(s)
+}</span>
+
+// IsValid checks if the severity is one of the defined valid severities.
+func (s Severity) IsValid() bool <span class="cov8" title="1">{
+        switch s </span>{
+        case SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo:<span class="cov8" title="1">
+                return true</span>
+        default:<span class="cov8" title="1">
+                return false</span>
+        }
+}
+
+// ChannelType represents the notification channel type.
+type ChannelType string
+
+// ChannelType constants define the valid notification channels.
+const (
+        ChannelTypeEmail    ChannelType = "email"
+        ChannelTypeSlack    ChannelType = "slack"
+        ChannelTypeSMS      ChannelType = "sms"
+        ChannelTypeWebhook  ChannelType = "webhook"
+        ChannelTypePagerDuty ChannelType = "pagerduty"
+)
+
+// String returns the string representation of the channel type.
+func (c ChannelType) String() string <span class="cov8" title="1">{
+        return string(c)
+}</span>
+
+// IsValid checks if the channel type is one of the defined valid types.
+func (c ChannelType) IsValid() bool <span class="cov8" title="1">{
+        switch c </span>{
+        case ChannelTypeEmail, ChannelTypeSlack, ChannelTypeSMS, ChannelTypeWebhook, ChannelTypePagerDuty:<span class="cov8" title="1">
+                return true</span>
+        default:<span class="cov8" title="1">
+                return false</span>
+        }
+}
+
+// Signal represents an incoming alert or notification that can trigger an incident.
+type Signal struct {
+        ID          string                 `json:"id"`
+        Source      string                 `json:"source"`
+        Title       string                 `json:"title"`
+        Description string                 `json:"description"`
+        Severity    Severity               `json:"severity"`
+        Labels      map[string]string      `json:"labels"`
+        Annotations map[string]string      `json:"annotations"`
+        Payload     map[string]interface{} `json:"payload"`
+        ReceivedAt  time.Time              `json:"received_at"`
+}
+
+// Validate checks if the signal has all required fields and valid values.
+//
+// Returns an error if validation fails, detailing what is invalid.
+func (s *Signal) Validate() error <span class="cov8" title="1">{
+        if s.ID == "" </span><span class="cov8" title="1">{
+                return errors.New("signal ID is required")
+        }</span>
+        <span class="cov8" title="1">if s.Source == "" </span><span class="cov8" title="1">{
+                return errors.New("signal source is required")
+        }</span>
+        <span class="cov8" title="1">if s.Title == "" </span><span class="cov8" title="1">{
+                return errors.New("signal title is required")
+        }</span>
+        <span class="cov8" title="1">if !s.Severity.IsValid() </span><span class="cov8" title="1">{
+                return fmt.Errorf("invalid severity: %s", s.Severity)
+        }</span>
+        <span class="cov8" title="1">if s.ReceivedAt.IsZero() </span><span class="cov8" title="1">{
+                return errors.New("signal received_at timestamp is required")
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Event represents a recorded action or change within an incident.
+type Event struct {
+        ID          string                 `json:"id"`
+        IncidentID  string                 `json:"incident_id"`
+        Type        string                 `json:"type"`
+        Actor       string                 `json:"actor"`
+        Description string                 `json:"description"`
+        Metadata    map[string]interface{} `json:"metadata"`
+        OccurredAt  time.Time              `json:"occurred_at"`
+}
+
+// Validate checks if the event has all required fields.
+//
+// Returns an error if validation fails, detailing what is invalid.
+func (e *Event) Validate() error <span class="cov8" title="1">{
+        if e.ID == "" </span><span class="cov8" title="1">{
+                return errors.New("event ID is required")
+        }</span>
+        <span class="cov8" title="1">if e.IncidentID == "" </span><span class="cov8" title="1">{
+                return errors.New("event incident_id is required")
+        }</span>
+        <span class="cov8" title="1">if e.Type == "" </span><span class="cov8" title="1">{
+                return errors.New("event type is required")
+        }</span>
+        <span class="cov8" title="1">if e.Actor == "" </span><span class="cov8" title="1">{
+                return errors.New("event actor is required")
+        }</span>
+        <span class="cov8" title="1">if e.OccurredAt.IsZero() </span><span class="cov8" title="1">{
+                return errors.New("event occurred_at timestamp is required")
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Incident represents a service disruption or issue that requires attention.
+type Incident struct {
+        ID          string    `json:"id"`
+        Title       string    `json:"title"`
+        Description string    `json:"description"`
+        Status      Status    `json:"status"`
+        Severity    Severity  `json:"severity"`
+        TeamID      string    `json:"team_id"`
+        AssigneeID  string    `json:"assignee_id,omitempty"`
+        ServiceID   string    `json:"service_id,omitempty"`
+        Labels      map[string]string `json:"labels,omitempty"`
+        CreatedAt   time.Time `json:"created_at"`
+        UpdatedAt   time.Time `json:"updated_at"`
+        ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
+
+        // Related entities
+        Signals []Signal `json:"signals,omitempty"`
+        Events  []Event  `json:"events,omitempty"`
+}
+
+// Validate checks if the incident has all required fields and valid values.
+//
+// Returns an error if validation fails, detailing what is invalid.
+//
+// Possible errors:
+//   - ErrMissingID: incident ID is empty
+//   - ErrMissingTitle: incident title is empty
+//   - ErrInvalidStatus: status is not one of the valid statuses
+//   - ErrInvalidSeverity: severity is not one of the valid severities
+//   - ErrMissingTeam: team ID is empty
+//   - ErrInvalidTimestamp: created_at or updated_at is zero
+func (i *Incident) Validate() error <span class="cov8" title="1">{
+        if i.ID == "" </span><span class="cov8" title="1">{
+                return errors.New("incident ID is required")
+        }</span>
+        <span class="cov8" title="1">if i.Title == "" </span><span class="cov8" title="1">{
+                return errors.New("incident title is required")
+        }</span>
+        <span class="cov8" title="1">if i.Title != "" &amp;&amp; len(i.Title) &gt; 200 </span><span class="cov8" title="1">{
+                return errors.New("incident title exceeds maximum length of 200 characters")
+        }</span>
+        <span class="cov8" title="1">if !i.Status.IsValid() </span><span class="cov8" title="1">{
+                return fmt.Errorf("invalid status: %s", i.Status)
+        }</span>
+        <span class="cov8" title="1">if !i.Severity.IsValid() </span><span class="cov8" title="1">{
+                return fmt.Errorf("invalid severity: %s", i.Severity)
+        }</span>
+        <span class="cov8" title="1">if i.TeamID == "" </span><span class="cov8" title="1">{
+                return errors.New("incident team_id is required")
+        }</span>
+        <span class="cov8" title="1">if i.CreatedAt.IsZero() </span><span class="cov8" title="1">{
+                return errors.New("incident created_at timestamp is required")
+        }</span>
+        <span class="cov8" title="1">if i.UpdatedAt.IsZero() </span><span class="cov8" title="1">{
+                return errors.New("incident updated_at timestamp is required")
+        }</span>
+        <span class="cov8" title="1">if i.UpdatedAt.Before(i.CreatedAt) </span><span class="cov8" title="1">{
+                return errors.New("incident updated_at cannot be before created_at")
+        }</span>
+        <span class="cov8" title="1">if i.Status == StatusResolved &amp;&amp; i.ResolvedAt == nil </span><span class="cov8" title="1">{
+                return errors.New("resolved incidents must have a resolved_at timestamp")
+        }</span>
+        <span class="cov8" title="1">if i.Status != StatusResolved &amp;&amp; i.ResolvedAt != nil </span><span class="cov8" title="1">{
+                return errors.New("only resolved incidents can have a resolved_at timestamp")
+        }</span>
+
+        // Validate attached signals
+        <span class="cov8" title="1">for idx, signal := range i.Signals </span><span class="cov8" title="1">{
+                if err := signal.Validate(); err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("invalid signal at index %d: %w", idx, err)
+                }</span>
+        }
+
+        // Validate attached events
+        <span class="cov8" title="1">for idx, event := range i.Events </span><span class="cov8" title="1">{
+                if err := event.Validate(); err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("invalid event at index %d: %w", idx, err)
+                }</span>
+                <span class="cov8" title="1">if event.IncidentID != i.ID </span><span class="cov8" title="1">{
+                        return fmt.Errorf("event at index %d has mismatched incident_id", idx)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// CanTransitionTo checks if the incident can transition from its current status to the target status.
+//
+// Valid transitions:
+//   - triggered → acknowledged
+//   - triggered → investigating
+//   - triggered → resolved
+//   - acknowledged → investigating
+//   - acknowledged → resolved
+//   - investigating → resolved
+//   - Any status → triggered (reopening)
+//
+// Returns true if the transition is valid, false otherwise.
+func (i *Incident) CanTransitionTo(targetStatus Status) bool <span class="cov8" title="1">{
+        if !targetStatus.IsValid() </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        // Same status is always valid (no-op)
+        <span class="cov8" title="1">if i.Status == targetStatus </span><span class="cov8" title="1">{
+                return true
+        }</span>
+
+        // Can always reopen an incident (transition to triggered)
+        <span class="cov8" title="1">if targetStatus == StatusTriggered </span><span class="cov8" title="1">{
+                return true
+        }</span>
+
+        <span class="cov8" title="1">switch i.Status </span>{
+        case StatusTriggered:<span class="cov8" title="1">
+                // From triggered, can go to acknowledged, investigating, or resolved
+                return targetStatus == StatusAcknowledged ||
+                           targetStatus == StatusInvestigating ||
+                           targetStatus == StatusResolved</span>
+        case StatusAcknowledged:<span class="cov8" title="1">
+                // From acknowledged, can go to investigating or resolved
+                return targetStatus == StatusInvestigating ||
+                           targetStatus == StatusResolved</span>
+        case StatusInvestigating:<span class="cov8" title="1">
+                // From investigating, can only go to resolved
+                return targetStatus == StatusResolved</span>
+        case StatusResolved:<span class="cov8" title="1">
+                // From resolved, can only go to triggered (reopening)
+                return targetStatus == StatusTriggered</span>
+        default:<span class="cov0" title="0">
+                return false</span>
+        }
+}
+
+// AttachSignal adds a signal to the incident if it's not already attached.
+//
+// The signal is validated before attachment. If validation fails,
+// an error is returned and the signal is not attached.
+func (i *Incident) AttachSignal(signal Signal) error <span class="cov8" title="1">{
+        if err := signal.Validate(); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("cannot attach invalid signal: %w", err)
+        }</span>
+
+        // Check if signal is already attached
+        <span class="cov8" title="1">for _, existingSignal := range i.Signals </span><span class="cov8" title="1">{
+                if existingSignal.ID == signal.ID </span><span class="cov8" title="1">{
+                        return nil // Signal already attached, no error
+                }</span>
+        }
+
+        <span class="cov8" title="1">i.Signals = append(i.Signals, signal)
+        i.UpdatedAt = time.Now().UTC()
+        return nil</span>
+}
+
+// RecordEvent adds an event to the incident's history.
+//
+// The event is validated before recording. If validation fails,
+// an error is returned and the event is not recorded.
+// The event's incident_id is automatically set to match this incident.
+func (i *Incident) RecordEvent(event Event) error <span class="cov8" title="1">{
+        // Set the incident ID to ensure consistency
+        event.IncidentID = i.ID
+
+        if err := event.Validate(); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("cannot record invalid event: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">i.Events = append(i.Events, event)
+        i.UpdatedAt = time.Now().UTC()
+        return nil</span>
+}
+
+// TransitionTo changes the incident status to the target status if the transition is valid.
+//
+// This method automatically handles side effects of status transitions:
+//   - Sets resolved_at timestamp when transitioning to resolved
+//   - Clears resolved_at timestamp when transitioning away from resolved
+//   - Updates the updated_at timestamp
+//   - Records a status change event
+//
+// Returns an error if the transition is invalid or if recording the event fails.
+func (i *Incident) TransitionTo(targetStatus Status, actor string) error <span class="cov8" title="1">{
+        if !i.CanTransitionTo(targetStatus) </span><span class="cov8" title="1">{
+                return fmt.Errorf("cannot transition from %s to %s", i.Status, targetStatus)
+        }</span>
+
+        <span class="cov8" title="1">oldStatus := i.Status
+        i.Status = targetStatus
+        i.UpdatedAt = time.Now().UTC()
+
+        // Handle resolved status side effects
+        if targetStatus == StatusResolved &amp;&amp; i.ResolvedAt == nil </span><span class="cov8" title="1">{
+                now := time.Now().UTC()
+                i.ResolvedAt = &amp;now
+        }</span> else<span class="cov8" title="1"> if targetStatus != StatusResolved &amp;&amp; i.ResolvedAt != nil </span><span class="cov8" title="1">{
+                i.ResolvedAt = nil
+        }</span>
+
+        // Record status change event
+        <span class="cov8" title="1">event := Event{
+                ID:          fmt.Sprintf("evt_%d", time.Now().UnixNano()),
+                Type:        "status_changed",
+                Actor:       actor,
+                Description: fmt.Sprintf("Status changed from %s to %s", oldStatus, targetStatus),
+                Metadata: map[string]interface{}{
+                        "old_status": oldStatus.String(),
+                        "new_status": targetStatus.String(),
+                },
+                OccurredAt: i.UpdatedAt,
+        }
+
+        return i.RecordEvent(event)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
