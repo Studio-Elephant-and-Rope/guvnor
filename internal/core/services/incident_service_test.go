@@ -383,12 +383,12 @@ func TestIncidentService_GetIncident(t *testing.T) {
 
 		// Create test incident
 		testIncident := &domain.Incident{
-			ID:          "test-id",
-			Title:       "Test incident",
-			Status:      domain.StatusTriggered,
-			TeamID:      "team-1",
-			CreatedAt:   time.Now().UTC(),
-			UpdatedAt:   time.Now().UTC(),
+			ID:        "test-id",
+			Title:     "Test incident",
+			Status:    domain.StatusTriggered,
+			TeamID:    "team-1",
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
 		}
 		repo.incidents[testIncident.ID] = testIncident
 
