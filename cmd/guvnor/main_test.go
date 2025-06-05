@@ -44,6 +44,7 @@ func TestMainOutput(t *testing.T) {
 		"Usage:",
 		"Available Commands:",
 		"version",
+		"run",
 		"Flags:",
 	}
 
