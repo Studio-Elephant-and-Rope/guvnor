@@ -31,6 +31,12 @@ go.work.sum
 *.swo
 *~
 
+# Cursor rules
+.cursorrules
+
+# Cursor memory
+.cursor/
+
 # OS-specific files
 .DS_Store
 Thumbs.db
