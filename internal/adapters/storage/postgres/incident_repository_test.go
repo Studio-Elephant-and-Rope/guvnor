@@ -1452,15 +1452,15 @@ func TestIncidentRepository_buildListQueryComprehensive(t *testing.T) {
 			UpdatedAt:  now.Add(-1 * time.Hour),
 		},
 		{
-			ID:        uuid.New().String(),
-			Title:     "Staging Environment Deployment Failed",
-			Status:    domain.StatusResolved,
-			Severity:  domain.SeverityMedium,
-			TeamID:    "team-devops",
-			ServiceID: "deployment-service",
-			Labels:    map[string]string{"env": "staging", "service": "deployment", "pipeline": "main"},
-			CreatedAt: now.Add(-6 * time.Hour),
-			UpdatedAt: now.Add(-30 * time.Minute),
+			ID:         uuid.New().String(),
+			Title:      "Staging Environment Deployment Failed",
+			Status:     domain.StatusResolved,
+			Severity:   domain.SeverityMedium,
+			TeamID:     "team-devops",
+			ServiceID:  "deployment-service",
+			Labels:     map[string]string{"env": "staging", "service": "deployment", "pipeline": "main"},
+			CreatedAt:  now.Add(-6 * time.Hour),
+			UpdatedAt:  now.Add(-30 * time.Minute),
 			ResolvedAt: func() *time.Time { t := now.Add(-30 * time.Minute); return &t }(),
 		},
 		{
@@ -1484,19 +1484,19 @@ func TestIncidentRepository_buildListQueryComprehensive(t *testing.T) {
 	}
 
 	comprehensiveTests := []struct {
-		name           string
-		filter         ports.ListFilter
-		expectedMin    int
-		expectedMax    int
-		shouldError    bool
-		description    string
+		name        string
+		filter      ports.ListFilter
+		expectedMin int
+		expectedMax int
+		shouldError bool
+		description string
 	}{
 		{
 			name: "multiple status with multiple severity",
 			filter: ports.ListFilter{
-				Status:   []domain.Status{domain.StatusTriggered, domain.StatusInvestigating},
-				Severity: []domain.Severity{domain.SeverityCritical, domain.SeverityHigh},
-				SortBy:   "severity",
+				Status:    []domain.Status{domain.StatusTriggered, domain.StatusInvestigating},
+				Severity:  []domain.Severity{domain.SeverityCritical, domain.SeverityHigh},
+				SortBy:    "severity",
 				SortOrder: "desc",
 			},
 			expectedMin: 2,
@@ -1568,9 +1568,9 @@ func TestIncidentRepository_buildListQueryComprehensive(t *testing.T) {
 			name: "nested label matching",
 			filter: ports.ListFilter{
 				Labels: map[string]string{
-					"service":   "gateway",
-					"env":       "production",
-					"region":    "us-east-1",
+					"service": "gateway",
+					"env":     "production",
+					"region":  "us-east-1",
 				},
 				SortBy:    "created_at",
 				SortOrder: "desc",
@@ -1582,9 +1582,9 @@ func TestIncidentRepository_buildListQueryComprehensive(t *testing.T) {
 		{
 			name: "empty results with impossible filter",
 			filter: ports.ListFilter{
-				TeamID:   "non-existent-team",
-				Status:   []domain.Status{domain.StatusTriggered},
-				SortBy:   "created_at",
+				TeamID:    "non-existent-team",
+				Status:    []domain.Status{domain.StatusTriggered},
+				SortBy:    "created_at",
 				SortOrder: "asc",
 			},
 			expectedMin: 0,
@@ -1883,8 +1883,8 @@ func TestIncidentRepository_ErrorPathsCoverage(t *testing.T) {
 	t.Run("Create with ID generation", func(t *testing.T) {
 		// For this implementation, ID must be provided as per domain validation
 		// Test that we properly handle the validation error
-		incident := createTestIncident("")  // This will create a valid incident but with empty ID
-		incident.ID = ""  // Ensure it's empty
+		incident := createTestIncident("") // This will create a valid incident but with empty ID
+		incident.ID = ""                   // Ensure it's empty
 
 		err := repo.Create(ctx, incident)
 		if err == nil {
@@ -1909,11 +1909,11 @@ func TestIncidentRepository_ErrorPathsCoverage(t *testing.T) {
 
 		// Test with labels containing special JSON characters
 		incident.Labels = map[string]string{
-			"quotes":     `"double" and 'single' quotes`,
-			"backslash":  `path\to\file`,
-			"newlines":   "line1\nline2\r\nline3",
-			"unicode":    "测试🚨💻",
-			"control":    "\t\b\f\r\n",
+			"quotes":    `"double" and 'single' quotes`,
+			"backslash": `path\to\file`,
+			"newlines":  "line1\nline2\r\nline3",
+			"unicode":   "测试🚨💻",
+			"control":   "\t\b\f\r\n",
 		}
 
 		err := repo.Create(ctx, incident)
@@ -1965,21 +1965,21 @@ func TestIncidentRepository_BuildQueryParameterCounting(t *testing.T) {
 		{
 			name: "maximum parameters",
 			filter: ports.ListFilter{
-				TeamID:     "team-1",
-				Status:     []domain.Status{domain.StatusTriggered, domain.StatusAcknowledged},
-				Severity:   []domain.Severity{domain.SeverityHigh, domain.SeverityMedium},
-				AssigneeID: "user-1",
-				ServiceID:  "service-1",
-				Labels:     map[string]string{"env": "prod", "region": "us-east"},
+				TeamID:        "team-1",
+				Status:        []domain.Status{domain.StatusTriggered, domain.StatusAcknowledged},
+				Severity:      []domain.Severity{domain.SeverityHigh, domain.SeverityMedium},
+				AssigneeID:    "user-1",
+				ServiceID:     "service-1",
+				Labels:        map[string]string{"env": "prod", "region": "us-east"},
 				CreatedAfter:  &[]time.Time{time.Now().Add(-24 * time.Hour)}[0],
 				CreatedBefore: &[]time.Time{time.Now()}[0],
 				UpdatedAfter:  &[]time.Time{time.Now().Add(-12 * time.Hour)}[0],
 				UpdatedBefore: &[]time.Time{time.Now()}[0],
-				Search:     "test search",
-				Limit:      10,
-				Offset:     0,
-				SortBy:     "created_at",
-				SortOrder:  "desc",
+				Search:        "test search",
+				Limit:         10,
+				Offset:        0,
+				SortBy:        "created_at",
+				SortOrder:     "desc",
 			},
 		},
 		{
