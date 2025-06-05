@@ -1,0 +1,94 @@
+# Guvnor Incident Management Platform Configuration
+# Example configuration file showing all available options
+#
+# Copy this file to your desired location and modify as needed.
+# All settings can be overridden with environment variables using the GUVNOR_ prefix.
+# For example: GUVNOR_SERVER_PORT=9000
+
+# HTTP Server Configuration
+server:
+  # Interface to bind the server to
+  # Use "0.0.0.0" to listen on all interfaces, "127.0.0.1" for localhost only
+  host: "0.0.0.0"
+
+  # Port to listen on
+  port: 8080
+
+  # Request timeout settings (in seconds)
+  read_timeout_seconds: 30
+  write_timeout_seconds: 30
+  idle_timeout_seconds: 120
+
+# Database and Storage Configuration
+storage:
+  # Storage backend type
+  # Supported: "sqlite", "postgres", "mysql"
+  type: "sqlite"
+
+  # Data Source Name (connection string)
+  # SQLite: "file:guvnor.db?cache=shared&mode=rwc"
+  # PostgreSQL: "postgres://username:password@localhost:5432/guvnor?sslmode=disable"
+  # MySQL: "username:password@tcp(localhost:3306)/guvnor?parseTime=true"
+  dsn: "file:guvnor.db?cache=shared&mode=rwc"
+
+  # Connection pool settings
+  max_open_connections: 25
+  max_idle_connections: 5
+  connection_max_lifetime_minutes: 5
+
+# OpenTelemetry and Observability Configuration
+telemetry:
+  # Enable/disable telemetry collection
+  enabled: false
+
+  # Service identification for traces and metrics
+  service_name: "guvnor"
+  service_version: "development"
+
+  # OpenTelemetry collector endpoint
+  # Examples:
+  # - Jaeger: "http://localhost:14268/api/traces"
+  # - OTLP HTTP: "http://localhost:4318/v1/traces"
+  # - OTLP gRPC: "localhost:4317"
+  endpoint: ""
+
+  # Sampling rate for traces (0.0 = no traces, 1.0 = all traces)
+  # In production, consider values like 0.01 (1%) to 0.1 (10%)
+  sample_rate: 0.1
+
+# Example production configuration:
+#
+# server:
+#   host: "0.0.0.0"
+#   port: 8080
+#   read_timeout_seconds: 60
+#   write_timeout_seconds: 60
+#   idle_timeout_seconds: 300
+#
+# storage:
+#   type: "postgres"
+#   dsn: "postgres://guvnor:secure_password@db.example.com:5432/guvnor_production?sslmode=require"
+#   max_open_connections: 50
+#   max_idle_connections: 10
+#   connection_max_lifetime_minutes: 10
+#
+# telemetry:
+#   enabled: true
+#   service_name: "guvnor"
+#   service_version: "1.0.0"
+#   endpoint: "http://jaeger.internal:14268/api/traces"
+#   sample_rate: 0.05
+
+# Environment Variable Examples:
+#
+# # Override server port
+# export GUVNOR_SERVER_PORT=9000
+#
+# # Use PostgreSQL in production
+# export GUVNOR_STORAGE_TYPE=postgres
+# export GUVNOR_STORAGE_DSN="postgres://user:pass@db:5432/guvnor"
+#
+# # Enable telemetry
+# export GUVNOR_TELEMETRY_ENABLED=true
+# export GUVNOR_TELEMETRY_ENDPOINT="http://jaeger:14268/api/traces"
+# export GUVNOR_TELEMETRY_SAMPLE_RATE=0.1
