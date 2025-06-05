@@ -18,7 +18,7 @@ func TestHello(t *testing.T) {
 }
 
 // TestMainOutput checks the output of the compiled main program.
-// Since the main program now uses structured logging, we check for expected log entries.
+// Since the main program now uses structured logging and configuration, we check for expected log entries.
 func TestMainOutput(t *testing.T) {
 	// Build the program first to ensure we are testing the current code
 	cmdBuild := exec.Command("go", "build", "-o", "../../guvnor_test_binary") // Output to root to avoid dirtying cmd/guvnor
@@ -40,12 +40,16 @@ func TestMainOutput(t *testing.T) {
 	// Check for expected structured logging output
 	expectedStrings := []string{
 		"Starting Guvnor incident management platform",
-		"version=0.1.0",
+		"version=development",
 		"environment=development",
 		"Application initialized successfully",
 		"Operation started",
 		"Operation completed",
 		"Guvnor startup complete",
+		"server_host=0.0.0.0",
+		"server_port=8080",
+		"storage_type=sqlite",
+		"telemetry_enabled=false",
 	}
 
 	for _, expected := range expectedStrings {
