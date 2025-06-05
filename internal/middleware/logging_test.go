@@ -304,11 +304,11 @@ func TestHealthCheckSkipMiddleware(t *testing.T) {
 	middleware := HealthCheckSkipMiddleware(skipPaths)(handler)
 
 	tests := []struct {
-		path        string
-		shouldLog   bool
+		path      string
+		shouldLog bool
 	}{
-		{"/health", true},    // Should still call handler, just skip logging in real middleware
-		{"/ping", true},      // Should still call handler, just skip logging in real middleware
+		{"/health", true},        // Should still call handler, just skip logging in real middleware
+		{"/ping", true},          // Should still call handler, just skip logging in real middleware
 		{"/api/incidents", true}, // Normal path should log
 	}
 

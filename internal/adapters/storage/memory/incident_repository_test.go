@@ -418,14 +418,14 @@ func TestIncidentRepository_List(t *testing.T) {
 			UpdatedAt: now.Add(-1 * time.Hour),
 		},
 		{
-			ID:        "incident-3",
-			Title:     "Minor logging issue",
-			Status:    domain.StatusResolved,
-			Severity:  domain.SeverityLow,
-			TeamID:    "team-2",
-			Labels:    map[string]string{"env": "staging"},
-			CreatedAt: now.Add(-30 * time.Minute),
-			UpdatedAt: now.Add(-10 * time.Minute),
+			ID:         "incident-3",
+			Title:      "Minor logging issue",
+			Status:     domain.StatusResolved,
+			Severity:   domain.SeverityLow,
+			TeamID:     "team-2",
+			Labels:     map[string]string{"env": "staging"},
+			CreatedAt:  now.Add(-30 * time.Minute),
+			UpdatedAt:  now.Add(-10 * time.Minute),
 			ResolvedAt: func() *time.Time { t := now.Add(-10 * time.Minute); return &t }(),
 		},
 	}
@@ -961,14 +961,14 @@ func TestIncidentRepository_SortingEdgeCases(t *testing.T) {
 			UpdatedAt: now.Add(-30 * time.Minute),
 		},
 		{
-			ID:          "incident-4",
-			Title:       "Fourth incident",
-			Status:      domain.StatusResolved,
-			Severity:    domain.SeverityLow,
-			TeamID:      "team-1",
-			CreatedAt:   now.Add(-30 * time.Minute),
-			UpdatedAt:   now.Add(-10 * time.Minute),
-			ResolvedAt:  func() *time.Time { t := now.Add(-10 * time.Minute); return &t }(),
+			ID:         "incident-4",
+			Title:      "Fourth incident",
+			Status:     domain.StatusResolved,
+			Severity:   domain.SeverityLow,
+			TeamID:     "team-1",
+			CreatedAt:  now.Add(-30 * time.Minute),
+			UpdatedAt:  now.Add(-10 * time.Minute),
+			ResolvedAt: func() *time.Time { t := now.Add(-10 * time.Minute); return &t }(),
 		},
 	}
 
@@ -1322,10 +1322,10 @@ func TestIncidentRepository_PaginationEdgeCases(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name          string
-		limit         int
-		offset        int
-		expectedCount int
+		name            string
+		limit           int
+		offset          int
+		expectedCount   int
 		expectedHasMore bool
 	}{
 		{

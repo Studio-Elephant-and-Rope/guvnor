@@ -112,9 +112,9 @@ func LoggingMiddleware(logger *logging.Logger) func(http.Handler) http.Handler {
 // getClientIP extracts the client IP address from the request.
 //
 // Checks headers in order of preference:
-//   1. X-Forwarded-For (proxy/load balancer)
-//   2. X-Real-IP (nginx)
-//   3. RemoteAddr (direct connection)
+//  1. X-Forwarded-For (proxy/load balancer)
+//  2. X-Real-IP (nginx)
+//  3. RemoteAddr (direct connection)
 func getClientIP(r *http.Request) string {
 	// Check X-Forwarded-For header (may contain multiple IPs)
 	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {

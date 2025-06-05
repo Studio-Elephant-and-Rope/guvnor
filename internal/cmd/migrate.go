@@ -309,7 +309,9 @@ func createMigrator(cfg *config.Config, logger *logging.Logger) (*migrate.Migrat
 		return nil, fmt.Errorf("failed to find migrations directory: %w", err)
 	}
 
-	logger.Debug("Using migrations path", "path", migrationsPath)
+	if logger != nil {
+		logger.Debug("Using migrations path", "path", migrationsPath)
+	}
 
 	// Open database connection
 	db, err := sql.Open("postgres", cfg.Storage.DSN)
@@ -401,7 +403,9 @@ func validateDatabaseConfig(cfg *config.Config, logger *logging.Logger) error {
 
 // runPreflightChecks performs pre-flight checks before migrations.
 func runPreflightChecks(cfg *config.Config, logger *logging.Logger) error {
-	logger.Info("Running pre-flight checks")
+	if logger != nil {
+		logger.Info("Running pre-flight checks")
+	}
 
 	// Check database connectivity
 	if err := testDatabaseConnection(cfg, logger); err != nil {
@@ -431,7 +435,9 @@ func runPreflightChecks(cfg *config.Config, logger *logging.Logger) error {
 		return fmt.Errorf("no migration files found in %s", migrationsPath)
 	}
 
-	logger.Info("Pre-flight checks passed", "migrations_found", migrationCount/2) // Divide by 2 for up/down pairs
+	if logger != nil {
+		logger.Info("Pre-flight checks passed", "migrations_found", migrationCount/2) // Divide by 2 for up/down pairs
+	}
 	return nil
 }
 

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	_ "github.com/lib/pq"
 
 	"github.com/Studio-Elephant-and-Rope/guvnor/internal/config"
 )

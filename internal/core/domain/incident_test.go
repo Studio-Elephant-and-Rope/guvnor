@@ -258,10 +258,10 @@ func TestEvent_Validate(t *testing.T) {
 		{
 			name: "missing ID",
 			event: Event{
-				IncidentID:  "incident-1",
-				Type:        "status_changed",
-				Actor:       "user@example.com",
-				OccurredAt:  validTime,
+				IncidentID: "incident-1",
+				Type:       "status_changed",
+				Actor:      "user@example.com",
+				OccurredAt: validTime,
 			},
 			wantErr: true,
 			errMsg:  "event ID is required",
@@ -532,10 +532,10 @@ func TestIncident_Validate(t *testing.T) {
 
 func TestIncident_CanTransitionTo(t *testing.T) {
 	tests := []struct {
-		name         string
+		name          string
 		currentStatus Status
 		targetStatus  Status
-		want         bool
+		want          bool
 	}{
 		// Same status transitions (no-op)
 		{"triggered to triggered", StatusTriggered, StatusTriggered, true},
@@ -561,10 +561,10 @@ func TestIncident_CanTransitionTo(t *testing.T) {
 		{"resolved to acknowledged", StatusResolved, StatusAcknowledged, false},
 		{"resolved to investigating", StatusResolved, StatusInvestigating, false},
 
-				// Invalid status
+		// Invalid status
 		{"triggered to invalid", StatusTriggered, Status("invalid"), false},
 
-				// Invalid current status (testing default case)
+		// Invalid current status (testing default case)
 		{"invalid to triggered", Status("invalid"), StatusTriggered, false},
 	}
 
@@ -901,8 +901,8 @@ func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr ||
 		(len(s) > len(substr) &&
 			(s[:len(substr)] == substr ||
-			 s[len(s)-len(substr):] == substr ||
-			 containsSubstring(s, substr))))
+				s[len(s)-len(substr):] == substr ||
+				containsSubstring(s, substr))))
 }
 
 func containsSubstring(s, substr string) bool {
