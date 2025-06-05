@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/Studio-Elephant-and-Rope/guvnor/internal/config"
 	"github.com/Studio-Elephant-and-Rope/guvnor/internal/logging"
+	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands.

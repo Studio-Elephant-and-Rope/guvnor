@@ -88,10 +88,10 @@ func TestEnvironment_IsValid(t *testing.T) {
 
 func TestDefaultConfig(t *testing.T) {
 	tests := []struct {
-		name        string
-		env         Environment
-		wantLevel   slog.Level
-		wantSource  bool
+		name       string
+		env        Environment
+		wantLevel  slog.Level
+		wantSource bool
 	}{
 		{
 			name:       "development config",
@@ -245,10 +245,10 @@ func TestLogger_JSONOutput(t *testing.T) {
 
 func TestLogger_LogLevelFiltering(t *testing.T) {
 	tests := []struct {
-		name       string
-		level      slog.Level
-		logFunc    func(*Logger)
-		shouldLog  bool
+		name      string
+		level     slog.Level
+		logFunc   func(*Logger)
+		shouldLog bool
 	}{
 		{
 			name:  "debug level allows debug logs",
@@ -688,30 +688,30 @@ func TestNewFromEnvironment(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		wantEnv     Environment
-		wantLevel   slog.Level
-		wantSource  bool
-		wantError   bool
+		name       string
+		envVars    map[string]string
+		wantEnv    Environment
+		wantLevel  slog.Level
+		wantSource bool
+		wantError  bool
 	}{
 		{
-			name:        "default configuration",
-			envVars:     map[string]string{},
-			wantEnv:     Development,
-			wantLevel:   slog.LevelDebug,
-			wantSource:  true,
-			wantError:   false,
+			name:       "default configuration",
+			envVars:    map[string]string{},
+			wantEnv:    Development,
+			wantLevel:  slog.LevelDebug,
+			wantSource: true,
+			wantError:  false,
 		},
 		{
 			name: "production environment",
 			envVars: map[string]string{
 				"GUVNOR_ENV": "production",
 			},
-			wantEnv:     Production,
-			wantLevel:   slog.LevelInfo,
-			wantSource:  false,
-			wantError:   false,
+			wantEnv:    Production,
+			wantLevel:  slog.LevelInfo,
+			wantSource: false,
+			wantError:  false,
 		},
 		{
 			name: "custom log level",
@@ -719,10 +719,10 @@ func TestNewFromEnvironment(t *testing.T) {
 				"GUVNOR_ENV":       "development",
 				"GUVNOR_LOG_LEVEL": "warn",
 			},
-			wantEnv:     Development,
-			wantLevel:   slog.LevelWarn,
-			wantSource:  true,
-			wantError:   false,
+			wantEnv:    Development,
+			wantLevel:  slog.LevelWarn,
+			wantSource: true,
+			wantError:  false,
 		},
 		{
 			name: "custom add source",
@@ -730,10 +730,10 @@ func TestNewFromEnvironment(t *testing.T) {
 				"GUVNOR_ENV":            "production",
 				"GUVNOR_LOG_ADD_SOURCE": "true",
 			},
-			wantEnv:     Production,
-			wantLevel:   slog.LevelInfo,
-			wantSource:  true,
-			wantError:   false,
+			wantEnv:    Production,
+			wantLevel:  slog.LevelInfo,
+			wantSource: true,
+			wantError:  false,
 		},
 		{
 			name: "invalid log level",

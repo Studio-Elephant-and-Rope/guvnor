@@ -34,12 +34,12 @@ func TestListFilter_Validate(t *testing.T) {
 		{
 			name: "valid filter with all fields",
 			filter: ListFilter{
-				TeamID:     "team-1",
-				Status:     []domain.Status{domain.StatusTriggered, domain.StatusAcknowledged},
-				Severity:   []domain.Severity{domain.SeverityHigh, domain.SeverityCritical},
-				AssigneeID: "user-1",
-				ServiceID:  "service-1",
-				Labels:     map[string]string{"env": "production"},
+				TeamID:        "team-1",
+				Status:        []domain.Status{domain.StatusTriggered, domain.StatusAcknowledged},
+				Severity:      []domain.Severity{domain.SeverityHigh, domain.SeverityCritical},
+				AssigneeID:    "user-1",
+				ServiceID:     "service-1",
+				Labels:        map[string]string{"env": "production"},
 				CreatedAfter:  &yesterday,
 				CreatedBefore: &now,
 				UpdatedAfter:  &yesterday,

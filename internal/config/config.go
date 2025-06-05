@@ -104,9 +104,9 @@ func DefaultConfig() *Config {
 // Load loads configuration from multiple sources with proper precedence.
 //
 // Configuration is loaded in this order of precedence:
-//   1. Environment variables (GUVNOR_*)
-//   2. Configuration file (if specified)
-//   3. Default values
+//  1. Environment variables (GUVNOR_*)
+//  2. Configuration file (if specified)
+//  3. Default values
 //
 // Returns a fully populated Config struct or an error if loading fails.
 func Load(configFile string) (*Config, error) {

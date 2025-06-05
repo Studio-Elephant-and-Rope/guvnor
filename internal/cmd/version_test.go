@@ -80,9 +80,9 @@ func TestVersionCmd(t *testing.T) {
 
 func TestGetVersionString(t *testing.T) {
 	tests := []struct {
-		name         string
-		version      string
-		expected     string
+		name     string
+		version  string
+		expected string
 	}{
 		{
 			name:     "development version",

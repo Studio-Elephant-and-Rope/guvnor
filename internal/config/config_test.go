@@ -130,14 +130,14 @@ func TestLoad_EnvironmentVariableOverrides(t *testing.T) {
 
 	// Set environment variables
 	envVars := map[string]string{
-		"GUVNOR_SERVER_HOST":                "192.168.1.100",
-		"GUVNOR_SERVER_PORT":                "3000",
-		"GUVNOR_STORAGE_TYPE":               "mysql",
+		"GUVNOR_SERVER_HOST":                  "192.168.1.100",
+		"GUVNOR_SERVER_PORT":                  "3000",
+		"GUVNOR_STORAGE_TYPE":                 "mysql",
 		"GUVNOR_STORAGE_MAX_OPEN_CONNECTIONS": "100",
-		"GUVNOR_TELEMETRY_ENABLED":          "true",
-		"GUVNOR_TELEMETRY_SERVICE_NAME":     "custom-guvnor",
-		"GUVNOR_TELEMETRY_ENDPOINT":         "http://localhost:14268/api/traces",
-		"GUVNOR_TELEMETRY_SAMPLE_RATE":      "0.8",
+		"GUVNOR_TELEMETRY_ENABLED":            "true",
+		"GUVNOR_TELEMETRY_SERVICE_NAME":       "custom-guvnor",
+		"GUVNOR_TELEMETRY_ENDPOINT":           "http://localhost:14268/api/traces",
+		"GUVNOR_TELEMETRY_SAMPLE_RATE":        "0.8",
 	}
 
 	// Set environment variables

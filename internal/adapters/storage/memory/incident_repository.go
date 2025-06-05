@@ -28,7 +28,7 @@ type IncidentRepository struct {
 	mu        sync.RWMutex
 	incidents map[string]*domain.Incident
 	events    map[string][]*domain.Event // incident_id -> events
-	nextID    int64                       // For generating event IDs
+	nextID    int64                      // For generating event IDs
 }
 
 // NewIncidentRepository creates a new in-memory incident repository.

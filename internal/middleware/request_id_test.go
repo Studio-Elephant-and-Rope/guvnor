@@ -196,9 +196,9 @@ func TestIsValidRequestID(t *testing.T) {
 
 func TestGetRequestIDFromContext(t *testing.T) {
 	tests := []struct {
-		name      string
-		setupCtx  func() context.Context
-		expectID  string
+		name     string
+		setupCtx func() context.Context
+		expectID string
 	}{
 		{
 			name: "returns request ID when present",

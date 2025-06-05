@@ -68,10 +68,10 @@ type ChannelType string
 
 // ChannelType constants define the valid notification channels.
 const (
-	ChannelTypeEmail    ChannelType = "email"
-	ChannelTypeSlack    ChannelType = "slack"
-	ChannelTypeSMS      ChannelType = "sms"
-	ChannelTypeWebhook  ChannelType = "webhook"
+	ChannelTypeEmail     ChannelType = "email"
+	ChannelTypeSlack     ChannelType = "slack"
+	ChannelTypeSMS       ChannelType = "sms"
+	ChannelTypeWebhook   ChannelType = "webhook"
 	ChannelTypePagerDuty ChannelType = "pagerduty"
 )
 
@@ -160,18 +160,18 @@ func (e *Event) Validate() error {
 
 // Incident represents a service disruption or issue that requires attention.
 type Incident struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Status      Status    `json:"status"`
-	Severity    Severity  `json:"severity"`
-	TeamID      string    `json:"team_id"`
-	AssigneeID  string    `json:"assignee_id,omitempty"`
-	ServiceID   string    `json:"service_id,omitempty"`
+	ID          string            `json:"id"`
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	Status      Status            `json:"status"`
+	Severity    Severity          `json:"severity"`
+	TeamID      string            `json:"team_id"`
+	AssigneeID  string            `json:"assignee_id,omitempty"`
+	ServiceID   string            `json:"service_id,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	ResolvedAt  *time.Time        `json:"resolved_at,omitempty"`
 
 	// Related entities
 	Signals []Signal `json:"signals,omitempty"`
@@ -279,12 +279,12 @@ func (i *Incident) CanTransitionTo(targetStatus Status) bool {
 	case StatusTriggered:
 		// From triggered, can go to acknowledged, investigating, or resolved
 		return targetStatus == StatusAcknowledged ||
-			   targetStatus == StatusInvestigating ||
-			   targetStatus == StatusResolved
+			targetStatus == StatusInvestigating ||
+			targetStatus == StatusResolved
 	case StatusAcknowledged:
 		// From acknowledged, can go to investigating or resolved
 		return targetStatus == StatusInvestigating ||
-			   targetStatus == StatusResolved
+			targetStatus == StatusResolved
 	case StatusInvestigating:
 		// From investigating, can only go to resolved
 		return targetStatus == StatusResolved
