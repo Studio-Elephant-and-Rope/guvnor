@@ -21,9 +21,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Studio-Elephant-and-Rope/guvnor/internal/adapters/storage/memory"
+	"github.com/Studio-Elephant-and-Rope/guvnor/internal/api/handlers"
 	"github.com/Studio-Elephant-and-Rope/guvnor/internal/config"
+	"github.com/Studio-Elephant-and-Rope/guvnor/internal/core/services"
 	"github.com/Studio-Elephant-and-Rope/guvnor/internal/logging"
 	"github.com/Studio-Elephant-and-Rope/guvnor/internal/middleware"
+	"github.com/Studio-Elephant-and-Rope/guvnor/internal/telemetry"
 )
 
 // Version information for the server
@@ -39,11 +43,13 @@ var (
 // The server maintains references to configuration, logging, and the underlying
 // HTTP server. It provides methods for starting, stopping, and graceful shutdown.
 type Server struct {
-	config     *config.Config
-	logger     *logging.Logger
-	httpServer *http.Server
-	startTime  time.Time
-	router     *http.ServeMux
+	config            *config.Config
+	logger            *logging.Logger
+	httpServer        *http.Server
+	startTime         time.Time
+	router            *http.ServeMux
+	incidentService   *services.IncidentService
+	telemetryReceiver *telemetry.Receiver
 }
 
 // HealthResponse represents the structure of the health check response.
@@ -73,11 +79,28 @@ func New(cfg *config.Config, logger *logging.Logger) (*Server, error) {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
+	// Create incident repository (using memory for now, could be configurable)
+	incidentRepo := memory.NewIncidentRepository()
+
+	// Create incident service
+	incidentService, err := services.NewIncidentService(incidentRepo, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create incident service: %w", err)
+	}
+
 	server := &Server{
-		config:    cfg,
-		logger:    logger,
-		startTime: time.Now().UTC(),
-		router:    http.NewServeMux(),
+		config:          cfg,
+		logger:          logger,
+		startTime:       time.Now().UTC(),
+		router:          http.NewServeMux(),
+		incidentService: incidentService,
+	}
+
+	// Set up telemetry receiver if enabled
+	if cfg.Telemetry.Receiver.Enabled {
+		if err := server.setupTelemetryReceiver(); err != nil {
+			return nil, fmt.Errorf("failed to setup telemetry receiver: %w", err)
+		}
 	}
 
 	// Set up routes
@@ -106,7 +129,16 @@ func (s *Server) Start() error {
 		"read_timeout", s.httpServer.ReadTimeout,
 		"write_timeout", s.httpServer.WriteTimeout,
 		"idle_timeout", s.httpServer.IdleTimeout,
+		"telemetry_receiver_enabled", s.telemetryReceiver != nil,
 	)
+
+	// Start telemetry receiver if configured
+	if s.telemetryReceiver != nil {
+		if err := s.telemetryReceiver.Start(context.Background()); err != nil {
+			return fmt.Errorf("failed to start telemetry receiver: %w", err)
+		}
+		s.logger.Info("Telemetry receiver started successfully")
+	}
 
 	go func() {
 		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -161,7 +193,16 @@ func (s *Server) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	// Attempt graceful shutdown
+	// Stop telemetry receiver first
+	if s.telemetryReceiver != nil {
+		if err := s.telemetryReceiver.Stop(ctx); err != nil {
+			s.logger.WithError(err).Error("Error stopping telemetry receiver")
+		} else {
+			s.logger.Info("Telemetry receiver stopped successfully")
+		}
+	}
+
+	// Attempt graceful shutdown of HTTP server
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		s.logger.WithError(err).Error("Error during graceful shutdown, forcing close")
 
@@ -177,14 +218,49 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
+// setupTelemetryReceiver initializes the OpenTelemetry receiver for incident detection.
+func (s *Server) setupTelemetryReceiver() error {
+	// Create signal processor with default configuration
+	processorConfig := telemetry.DefaultProcessorConfig()
+	processor := telemetry.NewThresholdProcessor(processorConfig, s.logger)
+
+	// Create signal handler that creates incidents
+	handlerConfig := telemetry.DefaultSignalHandlerConfig()
+	signalHandler, err := telemetry.NewIncidentSignalHandler(s.incidentService, s.logger, handlerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create signal handler: %w", err)
+	}
+
+	// Create telemetry receiver
+	receiver, err := telemetry.NewReceiver(&s.config.Telemetry.Receiver, s.logger, processor, signalHandler)
+	if err != nil {
+		return fmt.Errorf("failed to create telemetry receiver: %w", err)
+	}
+
+	s.telemetryReceiver = receiver
+	return nil
+}
+
 // setupRoutes configures the HTTP routes for the server.
 //
 // Currently implements:
 //   - GET /health - Health check endpoint
+//   - Incident management API endpoints
 //
 // Additional routes can be added here as features are implemented.
 func (s *Server) setupRoutes() {
+	// Health check endpoint
 	s.router.HandleFunc("/health", s.handleHealth)
+
+	// Create incident handler for API endpoints
+	incidentHandler, err := handlers.NewIncidentHandler(s.incidentService, s.logger)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to create incident handler")
+		return
+	}
+
+	// Register incident API routes
+	incidentHandler.RegisterRoutes(s.router)
 }
 
 // createHandler creates the complete HTTP handler chain with middleware.

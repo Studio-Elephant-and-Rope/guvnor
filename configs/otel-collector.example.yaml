@@ -1,0 +1,191 @@
+# OpenTelemetry Collector Configuration for Guvnor Integration
+#
+# This configuration shows how to set up an OpenTelemetry Collector to collect
+# telemetry data from various sources and forward it to Guvnor's OTLP receiver
+# for incident detection and signal processing.
+#
+# Usage:
+#   1. Start Guvnor with receiver enabled:
+#      export GUVNOR_TELEMETRY_RECEIVER_ENABLED=true
+#      ./guvnor serve
+#
+#   2. Run the collector with this config:
+#      otelcol-contrib --config=otel-collector.example.yaml
+
+# Receivers define how to collect telemetry data
+receivers:
+  # OTLP receiver for applications sending data directly
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://*"
+            - "https://*"
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'guvnor-demo'
+          static_configs:
+            - targets: ['localhost:8080']
+          scrape_interval: 30s
+          metrics_path: /metrics
+
+  # Host metrics receiver for system monitoring
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      disk:
+        metrics:
+          system.disk.io:
+            enabled: true
+      network:
+        metrics:
+          system.network.io:
+            enabled: true
+      load:
+        metrics:
+          system.cpu.load_average.1m:
+            enabled: true
+          system.cpu.load_average.5m:
+            enabled: true
+          system.cpu.load_average.15m:
+            enabled: true
+
+  # File log receiver for application logs
+  filelog:
+    include:
+      - /var/log/app/*.log
+      - /tmp/app-logs/*.log
+    operators:
+      - type: regex_parser
+        regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+(?P<level>\w+)\s+(?P<message>.*)$'
+        timestamp:
+          parse_from: attributes.timestamp
+          layout: '2006-01-02T15:04:05.000Z'
+      - type: severity_parser
+        parse_from: attributes.level
+
+# Processors transform telemetry data
+processors:
+  # Resource processor adds metadata to all telemetry
+  resource:
+    attributes:
+      - key: environment
+        value: "production"
+        action: upsert
+      - key: service.namespace
+        value: "guvnor-demo"
+        action: upsert
+
+  # Batch processor groups data for efficiency
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter prevents OOM issues
+  memory_limiter:
+    limit_mib: 256
+    spike_limit_mib: 64
+
+  # Attributes processor for adding custom labels
+  attributes:
+    actions:
+      - key: deployment.environment
+        value: "prod"
+        action: insert
+
+# Exporters define where to send processed data
+exporters:
+  # Send to Guvnor's OTLP receiver for incident detection
+  otlp/guvnor:
+    endpoint: http://localhost:4317  # Guvnor's gRPC OTLP receiver
+    tls:
+      insecure: true
+    headers:
+      x-source: "otel-collector"
+      x-environment: "production"
+
+  # Alternative HTTP endpoint
+  otlphttp/guvnor:
+    endpoint: http://localhost:4318  # Guvnor's HTTP OTLP receiver
+    tls:
+      insecure: true
+    headers:
+      x-source: "otel-collector"
+      x-environment: "production"
+
+  # Optional: Also send to observability backend
+  # otlp/jaeger:
+  #   endpoint: http://jaeger:14250
+  #   tls:
+  #     insecure: true
+
+  # Debug exporter for troubleshooting
+  debug:
+    verbosity: basic
+
+# Service section configures the collector pipeline
+service:
+  # Pipeline for traces
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/guvnor, debug]
+
+    # Pipeline for metrics
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics]
+      processors: [memory_limiter, resource, attributes, batch]
+      exporters: [otlp/guvnor, debug]
+
+    # Pipeline for logs
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/guvnor, debug]
+
+  # Telemetry configuration for the collector itself
+  telemetry:
+    logs:
+      level: "info"
+    metrics:
+      address: 0.0.0.0:8888
+
+# Example Guvnor configuration to enable receiver
+# Add this to your guvnor.yaml configuration file:
+#
+# telemetry:
+#   enabled: true
+#   service_name: "guvnor"
+#   service_version: "1.0.0"
+#   endpoint: "http://jaeger:14268/api/traces"  # Optional: send Guvnor's own traces
+#   sample_rate: 0.1
+#   receiver:
+#     enabled: true
+#     grpc_port: 4317
+#     http_port: 4318
+#     grpc_host: "0.0.0.0"
+#     http_host: "0.0.0.0"
+
+# Environment variables for Guvnor receiver configuration:
+# export GUVNOR_TELEMETRY_RECEIVER_ENABLED=true
+# export GUVNOR_TELEMETRY_RECEIVER_GRPC_PORT=4317
+# export GUVNOR_TELEMETRY_RECEIVER_HTTP_PORT=4318
+# export GUVNOR_TELEMETRY_RECEIVER_GRPC_HOST=0.0.0.0
+# export GUVNOR_TELEMETRY_RECEIVER_HTTP_HOST=0.0.0.0

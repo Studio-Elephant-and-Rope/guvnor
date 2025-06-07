@@ -68,6 +68,23 @@ type TelemetryConfig struct {
 	Endpoint string `mapstructure:"endpoint" yaml:"endpoint"`
 	// SampleRate is the fraction of traces to sample (0.0 to 1.0)
 	SampleRate float64 `mapstructure:"sample_rate" yaml:"sample_rate"`
+
+	// Receiver configuration for ingesting signals
+	Receiver ReceiverConfig `mapstructure:"receiver" yaml:"receiver"`
+}
+
+// ReceiverConfig configures the OpenTelemetry receiver endpoints.
+type ReceiverConfig struct {
+	// Enabled determines whether the OTLP receiver is active
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+	// GRPCPort is the port for OTLP gRPC receiver (default: 4317)
+	GRPCPort int `mapstructure:"grpc_port" yaml:"grpc_port"`
+	// HTTPPort is the port for OTLP HTTP receiver (default: 4318)
+	HTTPPort int `mapstructure:"http_port" yaml:"http_port"`
+	// GRPCHost is the host for OTLP gRPC receiver
+	GRPCHost string `mapstructure:"grpc_host" yaml:"grpc_host"`
+	// HTTPHost is the host for OTLP HTTP receiver
+	HTTPHost string `mapstructure:"http_host" yaml:"http_host"`
 }
 
 // DefaultConfig returns a configuration with sensible defaults.
@@ -97,6 +114,13 @@ func DefaultConfig() *Config {
 			ServiceVersion: "development",
 			Endpoint:       "",
 			SampleRate:     0.1,
+			Receiver: ReceiverConfig{
+				Enabled:  false,
+				GRPCPort: 4317,
+				HTTPPort: 4318,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
 		},
 	}
 }
@@ -168,6 +192,13 @@ func setDefaults(v *viper.Viper, config *Config) error {
 	v.SetDefault("telemetry.service_version", config.Telemetry.ServiceVersion)
 	v.SetDefault("telemetry.endpoint", config.Telemetry.Endpoint)
 	v.SetDefault("telemetry.sample_rate", config.Telemetry.SampleRate)
+
+	// Telemetry receiver defaults
+	v.SetDefault("telemetry.receiver.enabled", config.Telemetry.Receiver.Enabled)
+	v.SetDefault("telemetry.receiver.grpc_port", config.Telemetry.Receiver.GRPCPort)
+	v.SetDefault("telemetry.receiver.http_port", config.Telemetry.Receiver.HTTPPort)
+	v.SetDefault("telemetry.receiver.grpc_host", config.Telemetry.Receiver.GRPCHost)
+	v.SetDefault("telemetry.receiver.http_host", config.Telemetry.Receiver.HTTPHost)
 
 	return nil
 }
@@ -283,6 +314,43 @@ func (t *TelemetryConfig) Validate() error {
 	// If telemetry is enabled, endpoint should be specified
 	if t.Enabled && t.Endpoint == "" {
 		return fmt.Errorf("telemetry endpoint is required when telemetry is enabled")
+	}
+
+	// Validate receiver configuration
+	if err := t.Receiver.Validate(); err != nil {
+		return fmt.Errorf("receiver configuration invalid: %w", err)
+	}
+
+	return nil
+}
+
+// Validate checks receiver configuration for validity.
+func (r *ReceiverConfig) Validate() error {
+	// Only validate ports if receiver is enabled
+	if !r.Enabled {
+		return nil
+	}
+
+	if r.GRPCPort < 1 || r.GRPCPort > 65535 {
+		return fmt.Errorf("gRPC port must be between 1 and 65535, got %d", r.GRPCPort)
+	}
+
+	if r.HTTPPort < 1 || r.HTTPPort > 65535 {
+		return fmt.Errorf("HTTP port must be between 1 and 65535, got %d", r.HTTPPort)
+	}
+
+	// Ports cannot be the same (avoid conflicts)
+	if r.GRPCPort == r.HTTPPort {
+		return fmt.Errorf("gRPC port (%d) and HTTP port (%d) cannot be the same", r.GRPCPort, r.HTTPPort)
+	}
+
+	// Host addresses are optional but must not be empty strings
+	if r.GRPCHost == "" {
+		return fmt.Errorf("gRPC host cannot be empty when receiver is enabled")
+	}
+
+	if r.HTTPHost == "" {
+		return fmt.Errorf("HTTP host cannot be empty when receiver is enabled")
 	}
 
 	return nil
