@@ -569,6 +569,24 @@ func TestTelemetryConfig_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "telemetry endpoint is required when telemetry is enabled",
 		},
+		{
+			name: "invalid receiver configuration",
+			config: TelemetryConfig{
+				Enabled:        false,
+				ServiceName:    "guvnor",
+				ServiceVersion: "1.0.0",
+				SampleRate:     0.1,
+				Receiver: ReceiverConfig{
+					Enabled:  true,
+					GRPCPort: 4317,
+					HTTPPort: 4317, // Same as gRPC port - invalid
+					GRPCHost: "0.0.0.0",
+					HTTPHost: "0.0.0.0",
+				},
+			},
+			wantErr: true,
+			errMsg:  "receiver configuration invalid",
+		},
 	}
 
 	for _, tt := range tests {
@@ -580,6 +598,145 @@ func TestTelemetryConfig_Validate(t *testing.T) {
 			}
 			if tt.wantErr && !contains(err.Error(), tt.errMsg) {
 				t.Errorf("TelemetryConfig.Validate() error = %v, should contain %v", err.Error(), tt.errMsg)
+			}
+		})
+	}
+}
+
+func TestReceiverConfig_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  ReceiverConfig
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid disabled receiver",
+			config: ReceiverConfig{
+				Enabled: false,
+				// When disabled, other fields don't need to be valid
+				GRPCPort: 0,
+				HTTPPort: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid enabled receiver",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 4318,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid gRPC port too low",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 0,
+				HTTPPort: 4318,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: true,
+			errMsg:  "gRPC port must be between 1 and 65535",
+		},
+		{
+			name: "invalid gRPC port too high",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 70000,
+				HTTPPort: 4318,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: true,
+			errMsg:  "gRPC port must be between 1 and 65535",
+		},
+		{
+			name: "invalid HTTP port too low",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 0,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: true,
+			errMsg:  "HTTP port must be between 1 and 65535",
+		},
+		{
+			name: "invalid HTTP port too high",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 70000,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: true,
+			errMsg:  "HTTP port must be between 1 and 65535",
+		},
+		{
+			name: "same gRPC and HTTP ports",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 4317,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: true,
+			errMsg:  "gRPC port (4317) and HTTP port (4317) cannot be the same",
+		},
+		{
+			name: "empty gRPC host",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 4318,
+				GRPCHost: "",
+				HTTPHost: "0.0.0.0",
+			},
+			wantErr: true,
+			errMsg:  "gRPC host cannot be empty when receiver is enabled",
+		},
+		{
+			name: "empty HTTP host",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 4318,
+				GRPCHost: "0.0.0.0",
+				HTTPHost: "",
+			},
+			wantErr: true,
+			errMsg:  "HTTP host cannot be empty when receiver is enabled",
+		},
+		{
+			name: "valid localhost hosts",
+			config: ReceiverConfig{
+				Enabled:  true,
+				GRPCPort: 4317,
+				HTTPPort: 4318,
+				GRPCHost: "localhost",
+				HTTPHost: "127.0.0.1",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReceiverConfig.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && !contains(err.Error(), tt.errMsg) {
+				t.Errorf("ReceiverConfig.Validate() error = %v, should contain %v", err.Error(), tt.errMsg)
 			}
 		})
 	}
