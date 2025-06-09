@@ -1060,3 +1060,108 @@ func TestServer_StartupErrorCoverage(t *testing.T) {
 		}
 	})
 }
+
+func TestServer_TelemetryReceiverSetup(t *testing.T) {
+	cfg, err := createTestConfig()
+	if err != nil {
+		t.Fatalf("Failed to create test config: %v", err)
+	}
+
+	logger := createTestLogger()
+
+	tests := []struct {
+		name             string
+		telemetryEnabled bool
+		expectedReceiver bool
+		expectError      bool
+	}{
+		{
+			name:             "telemetry receiver disabled",
+			telemetryEnabled: false,
+			expectedReceiver: false,
+			expectError:      false,
+		},
+		{
+			name:             "telemetry receiver enabled",
+			telemetryEnabled: true,
+			expectedReceiver: true,
+			expectError:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Configure telemetry receiver
+			cfg.Telemetry.Receiver.Enabled = tt.telemetryEnabled
+			if tt.telemetryEnabled {
+				// Set valid receiver configuration
+				cfg.Telemetry.Receiver.GRPCPort = 4317
+				cfg.Telemetry.Receiver.HTTPPort = 4318
+				cfg.Telemetry.Receiver.GRPCHost = "127.0.0.1"
+				cfg.Telemetry.Receiver.HTTPHost = "127.0.0.1"
+			}
+
+			server, err := New(cfg, logger)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+				return
+			}
+
+			// Check if telemetry receiver was created as expected
+			hasReceiver := server.telemetryReceiver != nil
+			if hasReceiver != tt.expectedReceiver {
+				t.Errorf("Expected telemetry receiver enabled=%t, got=%t", tt.expectedReceiver, hasReceiver)
+			}
+
+			// Clean up
+			if server != nil {
+				server.Shutdown()
+			}
+		})
+	}
+}
+
+func TestServer_SetupTelemetryReceiverCoverage(t *testing.T) {
+	cfg, err := createTestConfig()
+	if err != nil {
+		t.Fatalf("Failed to create test config: %v", err)
+	}
+
+	logger := createTestLogger()
+
+	// Configure telemetry receiver with valid configuration
+	cfg.Telemetry.Receiver.Enabled = true
+	cfg.Telemetry.Receiver.GRPCPort = 4317
+	cfg.Telemetry.Receiver.HTTPPort = 4318
+	cfg.Telemetry.Receiver.GRPCHost = "127.0.0.1"
+	cfg.Telemetry.Receiver.HTTPHost = "127.0.0.1"
+
+	server, err := New(cfg, logger)
+
+	if err != nil {
+		t.Errorf("Expected no error with valid telemetry configuration, got: %v", err)
+		return
+	}
+
+	if server.telemetryReceiver == nil {
+		t.Error("Expected telemetry receiver to be created when enabled")
+	}
+
+	// Test that the receiver can be started and stopped (this exercises more code paths)
+	if server.telemetryReceiver != nil {
+		// Note: We don't actually start the receiver here as it would try to bind to ports
+		// The important thing is that setupTelemetryReceiver was called and created the receiver
+		t.Log("Telemetry receiver successfully created")
+	}
+
+	// Clean up
+	server.Shutdown()
+}
