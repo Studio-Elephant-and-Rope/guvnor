@@ -6,17 +6,17 @@ This directory contains example configurations for various Guvnor components.
 
 The correlation engine groups incoming signals based on configurable rules. Here are example configurations for different scenarios:
 
-### 📁 `correlation-basic.yaml`
+### 📁 `correlation-basic.example.yml`
 - **Use Case**: Simple setup for most environments
 - **Features**: Basic service grouping, critical alert separation, time-based fallback
 - **Best For**: Getting started, small to medium deployments
 
-### 📁 `correlation-advanced.yaml`
+### 📁 `correlation-advanced.example.yml`
 - **Use Case**: Production environments with complex requirements
 - **Features**: Multiple team-based rules, regional grouping, priority-based correlation
 - **Best For**: Large organisations, multi-team environments
 
-### 📁 `correlation-kubernetes.yaml`
+### 📁 `correlation-kubernetes.example.yml`
 - **Use Case**: Kubernetes-native environments
 - **Features**: Pod/node correlation, namespace grouping, container-specific rules
 - **Best For**: Cloud-native applications, microservices architectures
@@ -98,14 +98,19 @@ Groups any signals within the time window:
 ## Getting Started
 
 1. Choose the example closest to your environment
-2. Copy to your Guvnor configuration directory
+2. Copy the example file to your actual config:
+   ```bash
+   cp configs/correlation-basic.example.yml configs/correlation.yml
+   ```
 3. Adjust the rules for your specific labels and services
 4. Test with a few signals before rolling out
 5. Monitor correlation effectiveness and adjust priorities
 
+> **Note**: The `.example.yml` files are templates. Copy them to your actual configuration files (e.g., `correlation.yml`) and customize as needed. Your actual config files should be added to `.gitignore` to avoid committing sensitive configuration.
+
 ## Tips
 
-- **Start Simple**: Begin with `correlation-basic.yaml` and add complexity as needed
+- **Start Simple**: Begin with `correlation-basic.example.yml` and add complexity as needed
 - **Test Priorities**: Higher priority rules are checked first - ensure critical rules have high priorities
 - **Monitor Performance**: Watch group sizes and cleanup frequency
 - **Label Consistency**: Ensure your signal sources use consistent label names
