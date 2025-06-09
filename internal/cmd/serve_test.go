@@ -588,3 +588,85 @@ func TestRunServe_WithDemonstrateOperation(t *testing.T) {
 
 	t.Log("Server startup and health check verified")
 }
+
+func TestSetupServer_InitializationErrors(t *testing.T) {
+	// Test error during server initialization
+	tests := []struct {
+		name          string
+		configContent string
+		expectedError string
+	}{
+		{
+			name:          "non-existent config file",
+			configContent: "", // This will cause os.CreateTemp to not be called.
+			expectedError: "failed to load configuration",
+		},
+		{
+			name: "invalid yaml",
+			configContent: `
+server:
+  port: "not-a-number"
+`,
+			expectedError: "failed to load configuration",
+		},
+		{
+			name: "server config validation failure",
+			configContent: `
+server:
+  port: -1
+`,
+			expectedError: "server configuration invalid",
+		},
+		{
+			name: "telemetry config validation failure",
+			configContent: `
+telemetry:
+  receiver:
+    enabled: true
+    grpc_port: -1
+`,
+			expectedError: "gRPC port must be between 1 and 65535",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var configFile string
+			if tt.configContent != "" {
+				tempFile, err := os.CreateTemp("", "test-config-*.yaml")
+				if err != nil {
+					t.Fatalf("Failed to create temp file: %v", err)
+				}
+				defer os.Remove(tempFile.Name())
+
+				_, err = tempFile.WriteString(tt.configContent)
+				if err != nil {
+					t.Fatalf("Failed to write to temp file: %v", err)
+				}
+				tempFile.Close()
+				configFile = tempFile.Name()
+			} else {
+				configFile = "/a/non/existent/path/config.yaml"
+			}
+
+			_, _, err := setupServer(configFile)
+
+			if err == nil {
+				t.Fatalf("Expected an error but got none")
+			}
+
+			if !strings.Contains(err.Error(), tt.expectedError) {
+				t.Errorf("Expected error to contain '%s', but got: %v", tt.expectedError, err)
+			}
+		})
+	}
+}
+
+// TestRunServe_ErrorHandling now covers the error path of runServe after a setup failure.
+func TestRunServe_ErrorHandling(t *testing.T) {
+	// Use a config file path that is guaranteed to fail setup
+	err := runServe("/a/non/existent/path/for/runServe/test.yaml")
+	if err == nil {
+		t.Fatal("runServe should have returned an error for a non-existent config file")
+	}
+}

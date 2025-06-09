@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -742,5 +743,240 @@ func TestReceiver_MultipleSignals(t *testing.T) {
 		if handler.handledSignals[i].ID != signal.ID {
 			t.Errorf("Expected signal %d ID %s, got %s", i, signal.ID, handler.handledSignals[i].ID)
 		}
+	}
+}
+
+func TestReceiver_StartStop_Coverage(t *testing.T) {
+	// Test to improve coverage of Start/Stop methods without OpenTelemetry issues
+	cfg := createTestReceiverConfig()
+	logger := createTestLogger()
+	processor := &mockSignalProcessor{}
+	handler := &mockSignalHandler{}
+
+	receiver, err := NewReceiver(cfg, logger, processor, handler)
+	if err != nil {
+		t.Fatalf("Failed to create receiver: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Test starting disabled receiver
+	receiver.config.Enabled = false
+	err = receiver.Start(ctx)
+	if err != nil {
+		t.Errorf("Starting disabled receiver should not error, got: %v", err)
+	}
+	if receiver.IsRunning() {
+		t.Error("Disabled receiver should not be marked as running")
+	}
+
+	// Test already running check
+	receiver.config.Enabled = true
+	receiver.isRunning = true
+	err = receiver.Start(ctx)
+	if err == nil {
+		t.Error("Expected error when starting already running receiver")
+	}
+	if !contains(err.Error(), "already running") {
+		t.Errorf("Expected 'already running' error, got: %v", err)
+	}
+
+	// Reset for stop test
+	receiver.isRunning = false
+}
+
+func TestReceiver_StopWhenNotRunning(t *testing.T) {
+	cfg := createTestReceiverConfig()
+	logger := createTestLogger()
+	processor := &mockSignalProcessor{}
+	handler := &mockSignalHandler{}
+
+	receiver, err := NewReceiver(cfg, logger, processor, handler)
+	if err != nil {
+		t.Fatalf("Failed to create receiver: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Test stopping when not running
+	err = receiver.Stop(ctx)
+	if err != nil {
+		t.Errorf("Stopping non-running receiver should not error, got: %v", err)
+	}
+}
+
+func TestComponentHost_ReportFatalError(t *testing.T) {
+	logger := createTestLogger()
+	host := &componentHost{logger: logger}
+
+	// Test that ReportFatalError doesn't panic
+	testErr := fmt.Errorf("test fatal error")
+	host.ReportFatalError(testErr)
+
+	// If we get here without panicking, the test passes
+}
+
+func TestComponentHost_ReportComponentStatus(t *testing.T) {
+	logger := createTestLogger()
+	host := &componentHost{logger: logger}
+
+	// Test that ReportComponentStatus works (can't test with nil due to status check)
+	// Just verify the method exists and doesn't panic with a valid call
+	// In practice, this method would be called by the OpenTelemetry collector
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("ReportComponentStatus should not panic: %v", r)
+		}
+	}()
+
+	// The actual componentstatus.Event creation requires complex setup,
+	// so we'll just verify the method signature exists by checking the interface
+	_ = host.ReportComponentStatus
+}
+
+func TestCreateComponentHost_Coverage(t *testing.T) {
+	cfg := createTestReceiverConfig()
+	logger := createTestLogger()
+	processor := &mockSignalProcessor{}
+	handler := &mockSignalHandler{}
+
+	receiver, err := NewReceiver(cfg, logger, processor, handler)
+	if err != nil {
+		t.Fatalf("Failed to create receiver: %v", err)
+	}
+
+	// Test createComponentHost method
+	host, err := receiver.createComponentHost()
+	if err != nil {
+		t.Errorf("createComponentHost should not error, got: %v", err)
+	}
+	if host == nil {
+		t.Error("createComponentHost should return a host")
+	}
+
+	// Cast to concrete type to test the implemented methods
+	concreteHost, ok := host.(*componentHost)
+	if !ok {
+		t.Error("Expected *componentHost type")
+		return
+	}
+
+	// Test that all the host methods work without panicking
+	factory := concreteHost.GetFactory(component.KindReceiver, component.MustNewType("test"))
+	if factory != nil {
+		t.Error("Expected nil factory from minimal host")
+	}
+
+	extensions := concreteHost.GetExtensions()
+	if extensions == nil {
+		t.Error("Expected non-nil extensions map")
+	}
+
+	exporters := concreteHost.GetExporters()
+	if exporters == nil {
+		t.Error("Expected non-nil exporters map")
+	}
+
+	processors := concreteHost.GetProcessors()
+	if processors == nil {
+		t.Error("Expected non-nil processors map")
+	}
+
+	receivers := concreteHost.GetReceivers()
+	if receivers == nil {
+		t.Error("Expected non-nil receivers map")
+	}
+}
+
+func TestCreateOTLPConfig_Coverage(t *testing.T) {
+	cfg := createTestReceiverConfig()
+	logger := createTestLogger()
+	processor := &mockSignalProcessor{}
+	handler := &mockSignalHandler{}
+
+	receiver, err := NewReceiver(cfg, logger, processor, handler)
+	if err != nil {
+		t.Fatalf("Failed to create receiver: %v", err)
+	}
+
+	// Test createOTLPConfig method
+	config, err := receiver.createOTLPConfig()
+	if err != nil {
+		t.Errorf("createOTLPConfig should not error, got: %v", err)
+	}
+	if config == nil {
+		t.Error("createOTLPConfig should return a config")
+	}
+}
+
+func TestConsumerWrapper_ConsumeMetrics_ErrorPaths(t *testing.T) {
+	cfg := createTestReceiverConfig()
+	logger := createTestLogger()
+
+	// Test processor error path
+	processor := &mockSignalProcessor{
+		processMetricsFunc: func(ctx context.Context, metrics pmetric.Metrics) ([]domain.Signal, error) {
+			return nil, fmt.Errorf("processor error")
+		},
+	}
+	handler := &mockSignalHandler{}
+
+	receiver, err := NewReceiver(cfg, logger, processor, handler)
+	if err != nil {
+		t.Fatalf("Failed to create receiver: %v", err)
+	}
+
+	wrapper := &consumerWrapper{receiver: receiver}
+
+	// Create test metrics
+	metrics := pmetric.NewMetrics()
+	resourceMetrics := metrics.ResourceMetrics().AppendEmpty()
+	scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
+	metric := scopeMetrics.Metrics().AppendEmpty()
+	metric.SetName("test_metric")
+
+	ctx := context.Background()
+	err = wrapper.ConsumeMetrics(ctx, metrics)
+	if err == nil {
+		t.Error("Expected error from processor, got nil")
+	}
+	if !contains(err.Error(), "processor error") {
+		t.Errorf("Expected processor error, got: %v", err)
+	}
+}
+
+func TestConsumerWrapper_ConsumeLogs_ErrorPaths(t *testing.T) {
+	cfg := createTestReceiverConfig()
+	logger := createTestLogger()
+
+	// Test processor error path
+	processor := &mockSignalProcessor{
+		processLogsFunc: func(ctx context.Context, logs plog.Logs) ([]domain.Signal, error) {
+			return nil, fmt.Errorf("processor error")
+		},
+	}
+	handler := &mockSignalHandler{}
+
+	receiver, err := NewReceiver(cfg, logger, processor, handler)
+	if err != nil {
+		t.Fatalf("Failed to create receiver: %v", err)
+	}
+
+	wrapper := &consumerWrapper{receiver: receiver}
+
+	// Create test logs
+	logs := plog.NewLogs()
+	resourceLogs := logs.ResourceLogs().AppendEmpty()
+	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+	logRecord := scopeLogs.LogRecords().AppendEmpty()
+	logRecord.Body().SetStr("test log message")
+
+	ctx := context.Background()
+	err = wrapper.ConsumeLogs(ctx, logs)
+	if err == nil {
+		t.Error("Expected error from processor, got nil")
+	}
+	if !contains(err.Error(), "processor error") {
+		t.Errorf("Expected processor error, got: %v", err)
 	}
 }

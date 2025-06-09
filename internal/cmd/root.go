@@ -31,16 +31,18 @@ For more information, visit https://github.com/Studio-Elephant-and-Rope/guvnor`,
 	// Run function is optional for the root command
 	Run: func(cmd *cobra.Command, args []string) {
 		// If no subcommand is provided, show help
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
+
+var osExit = os.Exit
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		osExit(1)
 	}
 }
 
@@ -80,7 +82,7 @@ Example:
   guvnor run --config guvnor.yaml     # Start with custom config file
   GUVNOR_SERVER_PORT=9090 guvnor run  # Override port via environment`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configFile, _ := cmd.Flags().GetString("config")
+			configFile, _ := cmd.InheritedFlags().GetString("config")
 			return runGuvnor(configFile)
 		},
 	}

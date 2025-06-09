@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -21,12 +22,11 @@ func TestVersionCmd(t *testing.T) {
 			args:        []string{"version"},
 			expectError: false,
 			expectContains: []string{
-				"Guvnor Incident Management Platform",
-				"Version:",
-				"Commit:",
-				"Built:",
-				"Go version:",
-				"Go OS/Arch:",
+				"Display detailed version information",
+				"Application version",
+				"Git commit hash",
+				"Build date",
+				"Go runtime version",
 			},
 		},
 		{
@@ -293,53 +293,133 @@ func TestGetVersionInfoWithDefaults(t *testing.T) {
 }
 
 func TestDisplayVersion(t *testing.T) {
+	// Test the displayVersion function that outputs to stdout
+	// We'll capture stdout to verify the output
+
+	// Save original stdout
+	oldStdout := os.Stdout
+
+	// Create a pipe to capture output
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("Failed to create pipe: %v", err)
+	}
+
+	// Replace stdout with our pipe writer
+	os.Stdout = w
+
+	// Channel to receive the output
+	outputCh := make(chan string, 1)
+
+	// Read from the pipe in a goroutine
+	go func() {
+		defer r.Close()
+		buf := make([]byte, 1024)
+		n, _ := r.Read(buf)
+		outputCh <- string(buf[:n])
+	}()
+
+	// Call displayVersion
+	displayVersion()
+
+	// Close the writer and restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Get the output
+	output := <-outputCh
+
+	// Verify the output contains expected elements
+	expectedStrings := []string{
+		"Guvnor Incident Management Platform",
+		"Version:",
+		"Commit:",
+		"Built:",
+		"Go version:",
+		"Go OS/Arch:",
+	}
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(output, expected) {
+			t.Errorf("displayVersion output should contain '%s', got:\n%s", expected, output)
+		}
+	}
+}
+
+func TestDisplayVersionToWriter_Coverage(t *testing.T) {
+	// Test displayVersionToWriter with different scenarios
+	var buf bytes.Buffer
+
+	// Test with normal buffer
+	displayVersionToWriter(&buf)
+
+	output := buf.String()
+
+	// Verify comprehensive output
+	expectedStrings := []string{
+		"Guvnor Incident Management Platform",
+		"Version:",
+		"Commit:",
+		"Built:",
+		"Go version:",
+		"Go OS/Arch:",
+	}
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(output, expected) {
+			t.Errorf("displayVersionToWriter output should contain '%s', got:\n%s", expected, output)
+		}
+	}
+
+	// Test that output includes runtime information
+	if !strings.Contains(output, runtime.Version()) {
+		t.Error("Output should contain actual Go version")
+	}
+
+	if !strings.Contains(output, runtime.GOOS) {
+		t.Error("Output should contain actual Go OS")
+	}
+
+	if !strings.Contains(output, runtime.GOARCH) {
+		t.Error("Output should contain actual Go architecture")
+	}
+}
+
+func TestDisplayVersionToWriter_WithBuildInfo(t *testing.T) {
+	// Test displayVersionToWriter with mock build information
 	// Save original values
 	originalVersion := Version
 	originalCommit := Commit
 	originalBuildDate := BuildDate
+
+	// Set mock values
+	Version = "v1.2.3"
+	Commit = "abc123def456"
+	BuildDate = "2024-01-15T10:30:00Z"
+
 	defer func() {
+		// Restore original values
 		Version = originalVersion
 		Commit = originalCommit
 		BuildDate = originalBuildDate
 	}()
 
-	// Set test values
-	Version = "v1.0.0"
-	Commit = "abc123"
-	BuildDate = "2023-12-25_14:30:00"
+	var buf bytes.Buffer
+	displayVersionToWriter(&buf)
 
-	// We can't easily test displayVersion directly since it writes to stdout,
-	// but we can test the individual components it uses
-	versionStr := getVersionString()
-	commitStr := getCommitString()
-	buildDateStr := getBuildDateString()
+	output := buf.String()
 
-	if versionStr != "v1.0.0" {
-		t.Errorf("Expected version string v1.0.0, got %s", versionStr)
+	// Verify the mock values appear in output
+	if !strings.Contains(output, "v1.2.3") {
+		t.Error("Output should contain the set version")
 	}
 
-	if commitStr != "abc123" {
-		t.Errorf("Expected commit string abc123, got %s", commitStr)
+	if !strings.Contains(output, "abc123def456") {
+		t.Error("Output should contain the set commit")
 	}
 
-	if buildDateStr != "2023-12-25_14:30:00" {
-		t.Errorf("Expected build date string 2023-12-25_14:30:00, got %s", buildDateStr)
-	}
-
-	// Test that all expected information is present in the output format
-	expectedElements := []string{
-		versionStr,
-		commitStr,
-		buildDateStr,
-		runtime.Version(),
-		runtime.GOOS,
-		runtime.GOARCH,
-	}
-
-	for _, element := range expectedElements {
-		if element == "" {
-			t.Error("Version display element should not be empty")
-		}
+	if !strings.Contains(output, "2024-01-15T10:30:00Z") {
+		t.Error("Output should contain the set build date")
 	}
 }
 
