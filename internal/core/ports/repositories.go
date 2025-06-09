@@ -278,3 +278,77 @@ type IncidentRepository interface {
 	//   - ErrTimeout: operation exceeded context deadline
 	GetWithSignals(ctx context.Context, id string) (*domain.Incident, error)
 }
+
+// ScheduleRepository defines the contract for schedule storage operations.
+//
+// This interface abstracts the storage layer for on-call schedules, allowing different implementations
+// (PostgreSQL, SQLite, in-memory) while maintaining consistent behavior.
+// All methods should handle context cancellation and timeouts appropriately.
+type ScheduleRepository interface {
+	// Create stores a new schedule in the repository.
+	//
+	// The schedule must have a unique ID and pass domain validation.
+	// Returns ErrAlreadyExists if a schedule with the same ID already exists.
+	// Returns ErrInvalidInput if the schedule fails validation.
+	//
+	// Possible errors:
+	//   - ErrAlreadyExists: schedule with this ID already exists
+	//   - ErrInvalidInput: schedule fails validation
+	//   - ErrConnectionFailed: storage system is unavailable
+	//   - ErrTimeout: operation exceeded context deadline
+	Create(ctx context.Context, schedule *domain.Schedule) error
+
+	// Get retrieves a schedule by its unique identifier.
+	//
+	// Returns the complete schedule with all rotation information.
+	// Returns ErrNotFound if no schedule exists with the given ID.
+	//
+	// Possible errors:
+	//   - ErrNotFound: schedule does not exist
+	//   - ErrConnectionFailed: storage system is unavailable
+	//   - ErrTimeout: operation exceeded context deadline
+	Get(ctx context.Context, id string) (*domain.Schedule, error)
+
+	// GetByTeamID retrieves all schedules for a specific team.
+	//
+	// Returns a list of schedules belonging to the specified team.
+	// Returns an empty list if no schedules exist for the team.
+	//
+	// Possible errors:
+	//   - ErrConnectionFailed: storage system is unavailable
+	//   - ErrTimeout: operation exceeded context deadline
+	GetByTeamID(ctx context.Context, teamID string) ([]*domain.Schedule, error)
+
+	// List retrieves all schedules in the repository.
+	//
+	// Returns all schedules with optional filtering by enabled status.
+	//
+	// Possible errors:
+	//   - ErrConnectionFailed: storage system is unavailable
+	//   - ErrTimeout: operation exceeded context deadline
+	List(ctx context.Context, enabledOnly bool) ([]*domain.Schedule, error)
+
+	// Update modifies an existing schedule in the repository.
+	//
+	// The schedule must exist and pass domain validation.
+	// This operation updates the entire schedule record.
+	// Returns ErrNotFound if the schedule doesn't exist.
+	//
+	// Possible errors:
+	//   - ErrNotFound: schedule does not exist
+	//   - ErrInvalidInput: schedule fails validation
+	//   - ErrConnectionFailed: storage system is unavailable
+	//   - ErrTimeout: operation exceeded context deadline
+	Update(ctx context.Context, schedule *domain.Schedule) error
+
+	// Delete removes a schedule from the repository.
+	//
+	// This is a hard delete operation that permanently removes the schedule.
+	// Returns ErrNotFound if the schedule doesn't exist.
+	//
+	// Possible errors:
+	//   - ErrNotFound: schedule does not exist
+	//   - ErrConnectionFailed: storage system is unavailable
+	//   - ErrTimeout: operation exceeded context deadline
+	Delete(ctx context.Context, id string) error
+}
