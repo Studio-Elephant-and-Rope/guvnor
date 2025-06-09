@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -23,9 +24,10 @@ import (
 // configurations. Each subsystem should have its own configuration struct
 // to maintain separation of concerns.
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server" yaml:"server"`
-	Storage   StorageConfig   `mapstructure:"storage" yaml:"storage"`
-	Telemetry TelemetryConfig `mapstructure:"telemetry" yaml:"telemetry"`
+	Server        ServerConfig       `mapstructure:"server" yaml:"server"`
+	Storage       StorageConfig      `mapstructure:"storage" yaml:"storage"`
+	Telemetry     TelemetryConfig    `mapstructure:"telemetry" yaml:"telemetry"`
+	Notifications NotificationConfig `mapstructure:"notifications" yaml:"notifications"`
 }
 
 // ServerConfig contains HTTP server configuration.
@@ -87,6 +89,28 @@ type ReceiverConfig struct {
 	HTTPHost string `mapstructure:"http_host" yaml:"http_host"`
 }
 
+// NotificationConfig contains notification configuration.
+type NotificationConfig struct {
+	// Webhooks is a list of webhook endpoints to send notifications to
+	Webhooks []WebhookConfig `mapstructure:"webhooks" yaml:"webhooks"`
+}
+
+// WebhookConfig contains configuration for a single webhook endpoint.
+type WebhookConfig struct {
+	// URL is the webhook endpoint URL
+	URL string `mapstructure:"url" yaml:"url"`
+	// Secret is the shared secret for HMAC signature verification
+	Secret string `mapstructure:"secret" yaml:"secret"`
+	// Headers are additional HTTP headers to include in requests
+	Headers map[string]string `mapstructure:"headers" yaml:"headers"`
+	// Timeout is the request timeout duration (default: 30s)
+	Timeout string `mapstructure:"timeout" yaml:"timeout"`
+	// MaxRetries is the maximum number of retry attempts (default: 3)
+	MaxRetries int `mapstructure:"max_retries" yaml:"max_retries"`
+	// Enabled determines if this webhook is active
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+}
+
 // DefaultConfig returns a configuration with sensible defaults.
 //
 // These defaults are suitable for development and testing environments.
@@ -121,6 +145,9 @@ func DefaultConfig() *Config {
 				GRPCHost: "0.0.0.0",
 				HTTPHost: "0.0.0.0",
 			},
+		},
+		Notifications: NotificationConfig{
+			Webhooks: []WebhookConfig{},
 		},
 	}
 }
@@ -200,6 +227,9 @@ func setDefaults(v *viper.Viper, config *Config) error {
 	v.SetDefault("telemetry.receiver.grpc_host", config.Telemetry.Receiver.GRPCHost)
 	v.SetDefault("telemetry.receiver.http_host", config.Telemetry.Receiver.HTTPHost)
 
+	// Notification defaults
+	v.SetDefault("notifications.webhooks", config.Notifications.Webhooks)
+
 	return nil
 }
 
@@ -241,6 +271,11 @@ func (c *Config) Validate() error {
 	// Validate telemetry configuration
 	if err := c.Telemetry.Validate(); err != nil {
 		return fmt.Errorf("telemetry configuration invalid: %w", err)
+	}
+
+	// Validate notification configuration
+	if err := c.Notifications.Validate(); err != nil {
+		return fmt.Errorf("notification configuration invalid: %w", err)
 	}
 
 	return nil
@@ -351,6 +386,38 @@ func (r *ReceiverConfig) Validate() error {
 
 	if r.HTTPHost == "" {
 		return fmt.Errorf("HTTP host cannot be empty when receiver is enabled")
+	}
+
+	return nil
+}
+
+// Validate checks notification configuration for validity.
+func (n *NotificationConfig) Validate() error {
+	// Validate webhook configurations
+	for i, webhook := range n.Webhooks {
+		if err := webhook.Validate(); err != nil {
+			return fmt.Errorf("webhook configuration at index %d invalid: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// Validate checks webhook configuration for validity.
+func (w *WebhookConfig) Validate() error {
+	if w.URL == "" {
+		return fmt.Errorf("webhook URL is required")
+	}
+
+	if w.MaxRetries < 0 {
+		return fmt.Errorf("webhook max_retries cannot be negative")
+	}
+
+	if w.Timeout != "" {
+		// Validate timeout is a valid duration string
+		if _, err := time.ParseDuration(w.Timeout); err != nil {
+			return fmt.Errorf("invalid webhook timeout duration: %w", err)
+		}
 	}
 
 	return nil
