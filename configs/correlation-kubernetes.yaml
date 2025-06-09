@@ -1,0 +1,90 @@
+# Kubernetes-Focused Correlation Configuration
+# Optimised for containerised environments with Kubernetes
+
+correlation:
+  # Fast correlation for dynamic K8s environments
+  time_window: 3m
+  max_group_size: 75
+  cleanup_interval: 8m
+  group_ttl: 20m
+  enable_deduplication: true
+
+  rules:
+    # Rule 1: Critical pod crashes get immediate attention
+    - name: "pod-crashloop"
+      type: "labels"
+      match_labels:
+        severity: "critical"
+        kubernetes.reason: "CrashLoopBackOff"
+      priority: 300
+      enabled: true
+
+    # Rule 2: OOMKilled events grouped by namespace
+    - name: "oom-by-namespace"
+      type: "service"
+      group_by: ["kubernetes.namespace", "kubernetes.reason"]
+      priority: 280
+      enabled: true
+
+    # Rule 3: Service mesh issues by service
+    - name: "istio-correlation"
+      type: "service"
+      group_by: ["service.name", "istio.workload"]
+      priority: 250
+      enabled: true
+
+    # Rule 4: Node-level issues grouped by node
+    - name: "node-correlation"
+      type: "service"
+      group_by: ["kubernetes.node.name", "node.issue.type"]
+      priority: 220
+      enabled: true
+
+    # Rule 5: Deployment rollout issues
+    - name: "deployment-issues"
+      type: "labels"
+      match_labels:
+        kubernetes.object: "deployment"
+        event.type: "failed"
+      priority: 200
+      enabled: true
+
+    # Rule 6: Ingress/networking issues by cluster
+    - name: "network-by-cluster"
+      type: "service"
+      group_by: ["kubernetes.cluster", "network.component"]
+      priority: 180
+      enabled: true
+
+    # Rule 7: Storage/PVC issues
+    - name: "storage-correlation"
+      type: "service"
+      group_by: ["kubernetes.namespace", "storage.type"]
+      priority: 160
+      enabled: true
+
+    # Rule 8: Application errors by workload
+    - name: "app-by-workload"
+      type: "service"
+      group_by: ["kubernetes.workload.name", "kubernetes.namespace"]
+      priority: 140
+      enabled: true
+
+    # Rule 9: Namespace-wide correlation
+    - name: "namespace-correlation"
+      type: "service"
+      group_by: ["kubernetes.namespace"]
+      priority: 100
+      enabled: true
+
+    # Rule 10: Error pattern matching for similar stack traces
+    - name: "error-patterns"
+      type: "fingerprint"
+      priority: 80
+      enabled: true
+
+    # Rule 11: Time-based fallback
+    - name: "time-based-fallback"
+      type: "time"
+      priority: 10
+      enabled: true

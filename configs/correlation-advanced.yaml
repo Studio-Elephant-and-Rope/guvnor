@@ -1,0 +1,93 @@
+# Advanced Correlation Engine Configuration
+# This shows a more sophisticated setup with multiple correlation strategies
+
+correlation:
+  # Shorter time window for high-frequency environments
+  time_window: 2m
+
+  # Larger group size for busy systems
+  max_group_size: 100
+
+  # More frequent cleanup for active systems
+  cleanup_interval: 5m
+
+  # Shorter TTL for faster group turnover
+  group_ttl: 15m
+
+  # Enable deduplication
+  enable_deduplication: true
+
+  # Multiple correlation rules with specific priorities
+  rules:
+    # Rule 1: Emergency alerts get immediate individual attention
+    - name: "emergency-alerts"
+      type: "labels"
+      match_labels:
+        severity: "critical"
+        priority: "p0"
+      priority: 300
+      enabled: true
+
+    # Rule 2: Platform team issues grouped separately
+    - name: "platform-team-alerts"
+      type: "labels"
+      match_labels:
+        team: "platform"
+      priority: 250
+      enabled: true
+
+    # Rule 3: Database issues grouped by instance
+    - name: "database-correlation"
+      type: "service"
+      group_by: ["service.name", "database.instance"]
+      priority: 200
+      enabled: true
+
+    # Rule 4: Network alerts grouped by region
+    - name: "network-regional"
+      type: "service"
+      group_by: ["service.type", "region"]
+      priority: 180
+      enabled: true
+
+    # Rule 5: Error pattern matching for similar issues
+    - name: "error-patterns"
+      type: "fingerprint"
+      priority: 150
+      enabled: true
+
+    # Rule 6: Production environment gets special treatment
+    - name: "production-alerts"
+      type: "labels"
+      match_labels:
+        environment: "production"
+      priority: 120
+      enabled: true
+
+    # Rule 7: Standard service grouping
+    - name: "service-correlation"
+      type: "service"
+      group_by: ["service.name", "service.namespace"]
+      priority: 100
+      enabled: true
+
+    # Rule 8: Kubernetes namespace grouping
+    - name: "k8s-namespace"
+      type: "service"
+      group_by: ["kubernetes.namespace", "kubernetes.cluster"]
+      priority: 80
+      enabled: true
+
+    # Rule 9: Development environment (lower priority)
+    - name: "dev-alerts"
+      type: "labels"
+      match_labels:
+        environment: "development"
+      priority: 50
+      enabled: true
+
+    # Rule 10: Time-based fallback (always last)
+    - name: "time-based-fallback"
+      type: "time"
+      priority: 10
+      enabled: true

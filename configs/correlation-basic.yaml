@@ -1,0 +1,41 @@
+# Basic Correlation Engine Configuration
+# This shows a simple setup for alert correlation
+
+correlation:
+  # Time window for grouping signals together
+  time_window: 5m
+
+  # Maximum number of signals per group (prevents memory exhaustion)
+  max_group_size: 50
+
+  # How often to clean up old groups
+  cleanup_interval: 10m
+
+  # How long to keep groups without new activity
+  group_ttl: 30m
+
+  # Enable signal deduplication to filter exact duplicates
+  enable_deduplication: true
+
+  # Correlation rules (processed in priority order - highest first)
+  rules:
+    # Rule 1: Group critical alerts together (highest priority)
+    - name: "critical-alerts"
+      type: "labels"
+      match_labels:
+        severity: "critical"
+      priority: 200
+      enabled: true
+
+    # Rule 2: Group by service and environment (medium priority)
+    - name: "service-correlation"
+      type: "service"
+      group_by: ["service.name", "environment"]
+      priority: 100
+      enabled: true
+
+    # Rule 3: Time-based fallback for everything else (lowest priority)
+    - name: "time-based-fallback"
+      type: "time"
+      priority: 10
+      enabled: true
