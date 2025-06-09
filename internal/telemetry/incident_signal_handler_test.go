@@ -408,6 +408,74 @@ func TestMapSeverity(t *testing.T) {
 	}
 }
 
+func TestMapSeverity_CustomMapping(t *testing.T) {
+	config := DefaultSignalHandlerConfig()
+	// Create custom severity mapping
+	config.SeverityMapping = map[domain.Severity]domain.Severity{
+		domain.SeverityInfo:     domain.SeverityHigh,     // Custom mapping
+		domain.SeverityMedium:   domain.SeverityLow,      // Custom mapping
+		domain.SeverityCritical: domain.SeverityCritical, // Keep same
+	}
+	handler := &IncidentSignalHandler{config: config}
+
+	tests := []struct {
+		name     string
+		input    domain.Severity
+		expected domain.Severity
+	}{
+		{
+			name:     "custom mapping info to high",
+			input:    domain.SeverityInfo,
+			expected: domain.SeverityHigh,
+		},
+		{
+			name:     "custom mapping medium to low",
+			input:    domain.SeverityMedium,
+			expected: domain.SeverityLow,
+		},
+		{
+			name:     "mapped critical stays critical",
+			input:    domain.SeverityCritical,
+			expected: domain.SeverityCritical,
+		},
+		{
+			name:     "unmapped severity falls back to default logic",
+			input:    domain.SeverityLow,
+			expected: domain.SeverityLow, // Default behaviour for SeverityLow
+		},
+		{
+			name:     "unmapped high severity falls back to default logic",
+			input:    domain.SeverityHigh,
+			expected: domain.SeverityHigh, // Default behaviour for SeverityHigh
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := handler.mapSeverity(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected severity mapping %s -> %s, got %s", tt.input, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestMapSeverity_UnknownSeverity(t *testing.T) {
+	config := DefaultSignalHandlerConfig()
+	handler := &IncidentSignalHandler{config: config}
+
+	// Test with an unknown/invalid severity value (like empty string or invalid value)
+	// The Go enum system would typically prevent this, but we can test the default case
+	unknownSeverity := domain.Severity("unknown")
+
+	result := handler.mapSeverity(unknownSeverity)
+	expected := domain.SeverityMedium // Safe default per the code
+
+	if result != expected {
+		t.Errorf("Expected unknown severity to map to safe default %s, got %s", expected, result)
+	}
+}
+
 func TestCreateIncidentTitle(t *testing.T) {
 	handler := &IncidentSignalHandler{}
 

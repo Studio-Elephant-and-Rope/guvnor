@@ -1,0 +1,126 @@
+# Example On-Call Schedule Configuration for Guvnor
+#
+# This file demonstrates how to define on-call schedules using YAML configuration.
+# These schedules can be version-controlled and managed through GitOps workflows.
+#
+# Usage:
+#   1. Copy this file to your desired location (e.g., schedules.yaml)
+#   2. Modify the schedules, timezones, and participants as needed
+#   3. Load schedules using the config.LoadSchedulesFromFile() function
+#
+# The configuration supports:
+#   - Multiple schedules per file
+#   - Different rotation types (weekly, daily, custom)
+#   - Timezone-aware scheduling
+#   - Flexible participant lists
+#   - Enable/disable individual schedules
+
+schedules:
+  # Platform team with weekly rotation
+  platform-team:
+    # Optional: Human-readable name (defaults to schedule ID)
+    name: "Platform Team On-Call"
+    # Optional: Team ID (defaults to schedule ID)
+    team_id: "platform-team"
+    # Required: IANA timezone name
+    timezone: Europe/London
+    # Required: Rotation configuration
+    rotation:
+      # Required: Rotation type (weekly, daily, custom)
+      type: weekly
+      # Required: List of participants (user IDs/emails)
+      participants:
+        - alice@company.com
+        - bob@company.com
+        - charlie@company.com
+      # Optional: Start date (defaults to current time)
+      # Supports RFC3339, ISO 8601, or YYYY-MM-DD formats
+      start_date: "2024-01-01T09:00:00Z"
+    # Optional: Enable/disable schedule (defaults to true)
+    enabled: true
+
+  # Backend team with daily rotation
+  backend-team:
+    name: "Backend Engineering On-Call"
+    team_id: "backend"
+    timezone: America/New_York
+    rotation:
+      type: daily
+      participants:
+        - dev1@company.com
+        - dev2@company.com
+        - dev3@company.com
+        - dev4@company.com
+      start_date: "2024-01-01T08:00:00-05:00"
+
+  # SRE team with custom 72-hour rotation
+  sre-team:
+    timezone: UTC
+    rotation:
+      type: custom
+      participants:
+        - sre-alice@company.com
+        - sre-bob@company.com
+        - sre-charlie@company.com
+      start_date: "2024-01-01T00:00:00Z"
+      # Required for custom rotations: duration in Go duration format
+      # Examples: "24h", "72h", "168h" (1 week), "336h" (2 weeks)
+      duration: "72h"
+
+  # Frontend team (currently disabled)
+  frontend-team:
+    name: "Frontend Team On-Call"
+    team_id: "frontend"
+    timezone: America/Los_Angeles
+    rotation:
+      type: weekly
+      participants:
+        - ui-dev1@company.com
+        - ui-dev2@company.com
+      start_date: "2024-01-01T09:00:00-08:00"
+    enabled: false
+
+  # Security team with weekly rotation (minimal configuration)
+  security-team:
+    timezone: UTC
+    rotation:
+      type: weekly
+      participants:
+        - security-lead@company.com
+        - security-analyst@company.com
+
+# Configuration Notes:
+#
+# 1. Schedule IDs (keys under 'schedules') must be unique
+# 2. Participant order determines rotation sequence
+# 3. Timezone names must be valid IANA timezone identifiers
+# 4. Start dates can be in various formats but timezone-aware formats are recommended
+# 5. Custom rotations require a 'duration' field
+# 6. All schedules are enabled by default unless explicitly disabled
+#
+# Supported Rotation Types:
+# - weekly: 7-day rotations (most common)
+# - daily: 24-hour rotations
+# - custom: User-defined duration (e.g., "72h" for 3 days)
+#
+# Example Timezone Values:
+# - UTC
+# - America/New_York
+# - America/Los_Angeles
+# - Europe/London
+# - Europe/Berlin
+# - Asia/Tokyo
+# - Australia/Sydney
+#
+# Loading in Go Code:
+#
+#   import "github.com/Studio-Elephant-and-Rope/guvnor/internal/config"
+#
+#   schedules, err := config.LoadSchedulesFromFile("schedules.yaml")
+#   if err != nil {
+#       log.Fatalf("Failed to load schedules: %v", err)
+#   }
+#
+#   for _, schedule := range schedules {
+#       log.Printf("Loaded schedule: %s", schedule.String())
+#   }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -38,18 +39,17 @@ Examples:
 	},
 }
 
-// runServe starts the HTTP server with the given configuration.
-func runServe(configFile string) error {
+func setupServer(configFile string) (*server.Server, *logging.Logger, error) {
 	// Load configuration
 	cfg, err := config.Load(configFile)
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return nil, nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	// Initialize structured logger from environment
 	logger, err := logging.NewFromEnvironment()
 	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
 	// Log startup information
@@ -67,7 +67,22 @@ func runServe(configFile string) error {
 	// Create and configure the server
 	srv, err := server.New(cfg, logger)
 	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
+		return nil, logger, fmt.Errorf("failed to create server: %w", err)
+	}
+	return srv, logger, nil
+}
+
+// runServe starts the HTTP server with the given configuration.
+func runServe(configFile string) error {
+	srv, logger, err := setupServer(configFile)
+	if err != nil {
+		// If logger is available, use it. Otherwise, print to stderr.
+		if logger != nil {
+			logger.WithError(err).Error("Server setup failed")
+		} else {
+			fmt.Fprintf(os.Stderr, "Server setup failed: %v\n", err)
+		}
+		return err
 	}
 
 	// Start server with graceful shutdown handling
